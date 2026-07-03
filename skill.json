@@ -1,0 +1,10 @@
+{
+  "name": "flutter-dev",
+  "description": "Flutter/Dart 应用开发技能。5 子命令: create(flutter create 工程创建) / fix(analyzer+runtime+layout 修复) / test(flutter test 验证) / kb(Qdrant 知识库查询/构建/合并/重索引) / search(本地 sidebars 匹配+URL 抓取)。覆盖 Flutter/Dart 开发全生命周期。",
+  "license": "MIT",
+  "version": "0.1.0",
+  "author": "Flutter-DEV Contributors",
+  "repo": "",
+  "homepage": "",
+  "tag": ["flutter", "dart", "widget", "material", "cupertino", "qdrant", "knowledge-base", "testing"]
+}
