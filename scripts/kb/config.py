@@ -15,7 +15,7 @@ CONFIG_FILENAME = "config.json"
 DEFAULT_CONFIG: dict[str, Any] = {
     "embed_model": "sentence-transformers/paraphrase-MiniLM-L3-v2",
     "embed_dim": 384,
-    "embed_source": "modelscope",
+    "embed_source": "modelscopes",
     "embed_base_url": "",
     "embed_api_key": "",
     "rerank_model": "flashrank",
@@ -31,6 +31,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "bm25_weight": 0.3,
         "vector_weight": 0.7,
     },
+    # B14: context 过期阈值（天），refresh-expired 子命令用此判断哪些 doc
+    # 需要重新抓取网页内容。30 天与 hap-dev 一致。
+    "content_expire_days": 30,
 }
 
 

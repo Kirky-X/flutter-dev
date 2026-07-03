@@ -105,16 +105,27 @@ def _merge_two(a: dict[str, Any], b: dict[str, Any]) -> tuple[dict[str, Any], bo
     # links: union
     merged["links"] = _dedupe(list(a.get("links", [])) + list(b.get("links", [])))
 
+    # B22: context 显式合并（不在 _SCALAR_FIELDS 中——语义不同：context 是网页
+    # 原始内容而非元数据）。复用 _merge_scalar 的"非空优先，否则 newer wins"逻辑，
+    # 空值判定为 ""（与 _is_empty 默认分支一致）。修复前 _merge_two 未设 context，
+    # 导致合并后 doc 的 context 丢失且 hash 与实际内容脱钩——后续 reindex(force=False)
+    # 会误判 doc 未变化而跳过重嵌入。
+    merged["context"] = _merge_scalar(
+        "context", a.get("context", ""), b.get("context", ""), a_newer,
+    )
+
     # timestamps
     merged["created_at"] = min(a["created_at"], b["created_at"])
     merged["updated_at"] = max(a["updated_at"], b["updated_at"])
 
-    # B4: content_hash recomputed via the single source of truth (includes
-    # description + sorted links), so a description change is detectable.
+    # B4+B22: content_hash recomputed via the single source of truth (includes
+    # description + sorted links + context), so a description/context change is
+    # detectable. context 必须传入——否则 hash 与 merged["context"] 脱钩。
     merged["content_hash"] = _make_content_hash(
         merged["title"], merged["url"], merged["doc_type"],
         merged.get("description", NO_DESCRIPTION),
         merged["links"],
+        context=merged["context"],
     )
 
     # B1: embed_model inherits from the newer source doc. The merge() entry

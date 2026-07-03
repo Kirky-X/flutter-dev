@@ -28,9 +28,13 @@ ID_FIELD = "id"
 # the vector). NB: 'title' is in the whitelist because links.py / merge.py
 # legitimately write it via set_payload when merging. The vector is NOT in
 # this set because set_payload never touches the vector by design.
+# B14: 'context' added — it is not a vector-bearing field (vector is computed
+# from description/title), so set_payload can safely write it (used by
+# migrate-context and touch_updated_at-related flows).
 PAYLOAD_FIELDS = frozenset({
     "id", "title", "doc_type", "url", "description",
     "links", "created_at", "updated_at", "content_hash", "embed_model",
+    "context",
 })
 
 
@@ -167,6 +171,9 @@ class QdrantIndexer:
 
         B1: includes `embed_model` as the 10th field. Old docs without it
         read back as "" via `_payload_from` (legacy tolerance).
+
+        B14: includes `context` as the 11th field (url 抓取的原始 markdown
+        内容，初始 "")。Old docs without it read back as "" via `_payload_from`.
         """
         return {
             ID_FIELD: doc["id"],
@@ -179,6 +186,7 @@ class QdrantIndexer:
             "updated_at": doc["updated_at"],
             "content_hash": doc["content_hash"],
             "embed_model": doc.get("embed_model", ""),
+            "context": doc.get("context", ""),
         }
 
     # ---- read -------------------------------------------------------------
@@ -316,6 +324,9 @@ class QdrantIndexer:
             # B1: legacy tolerance — pre-B1 docs lack this field; treat as "".
             # Use `or ""` to also coerce None (left over by some Qdrant ops).
             "embed_model": payload.get("embed_model") or "",
+            # B14: legacy tolerance — pre-B14 docs lack this field; treat as "".
+            # `or ""` coerces None (left over by some Qdrant ops) to "".
+            "context": payload.get("context") or "",
         }
 
     def get_embed_models(self) -> set[str]:
@@ -330,6 +341,32 @@ class QdrantIndexer:
         for d in self.list_all():
             models.add(d.get("embed_model", ""))
         return models
+
+    def iter_raw_payloads(self) -> list[tuple[int, dict[str, Any]]]:
+        """B14: return raw Qdrant payloads without ``_payload_from`` normalization.
+
+        Used by migrate-context to detect legacy docs missing the ``context``
+        field that ``_payload_from`` would default to ``""``. Returns a list of
+        ``(point_id, raw_payload)`` tuples — ``point_id`` is the Qdrant uint64
+        id needed for batch ``set_payload`` calls; ``raw_payload`` contains only
+        the fields actually present in storage (missing keys = pre-B14 legacy).
+        """
+        self._ensure_collection(recreate=False)
+        out: list[tuple[int, dict[str, Any]]] = []
+        offset = None
+        while True:
+            res, offset = self.client.scroll(
+                collection_name=self.collection,
+                limit=256,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False,
+            )
+            for p in res:
+                out.append((p.id, dict(p.payload or {})))
+            if offset is None:
+                break
+        return out
 
     def _read_point_by_pid(self, pid: int,
                             with_payload: bool = True,
