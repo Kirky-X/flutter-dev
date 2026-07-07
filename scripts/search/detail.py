@@ -34,11 +34,16 @@ if __package__ in (None, ""):
 
 import httpx
 
+from urllib.parse import urlparse
+
 from scripts.search._http import (
     COMMON_HEADERS,
     TIMEOUT,
     html_to_markdown,
     http_get,
+    DOCS_HOST,
+    API_HOST,
+    PUB_HOST,
 )
 
 __all__ = ["detail", "extract_title", "main"]
@@ -140,6 +145,18 @@ def detail(
     if not url or not url.strip():
         raise ValueError("url must not be empty")
 
+    # SSRF 防护：限制只能抓取 Flutter 官方文档站点（防内网/元数据探测，如 169.254.169.254）
+    _allowed_hosts = {DOCS_HOST, API_HOST, PUB_HOST}
+    _hostname = urlparse(url).hostname
+    if _hostname not in _allowed_hosts:
+        return {
+            "title": "",
+            "url": url,
+            "content": "",
+            "description": "",
+            "error": f"blocked: host '{_hostname}' not in allowed {_allowed_hosts} (SSRF 防护)",
+        }
+
     text, err = http_get(url, client=client)
     if err:
         return {
@@ -190,7 +207,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             "转换为 Markdown 供 agent 检索或 description 回填。"
         ),
     )
-    parser.add_argument("url", help="文档 URL（如 https://docs.flutter.cn/ui/widgets/layout）")
+    parser.add_argument(
+        "url", help="文档 URL（如 https://docs.flutter.cn/ui/widgets/layout）"
+    )
     try:
         args = parser.parse_args(argv)
     except SystemExit as e:

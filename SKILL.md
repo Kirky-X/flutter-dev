@@ -1,6 +1,6 @@
 ---
 name: flutter-dev
-description: "Flutter/Dart 应用开发技能（5 子命令：create/fix/test/kb/search）。触发：Flutter/Dart/Widget/Material/Cupertino/创建工程/dart analyze/RenderFlex/NoSuchMethodError/flutter test/文档搜索/知识库"
+description: "Flutter/Dart 应用开发技能。触发：Flutter/Dart/Widget/Material/Cupertino/创建工程/dart analyze/RenderFlex/NoSuchMethodError/flutter test/文档搜索/知识库"
 license: MIT
 ---
 
