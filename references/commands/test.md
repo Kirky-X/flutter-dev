@@ -1,116 +1,116 @@
-# test 子命令 —— Flutter 测试与验证
+# test subcommand — Flutter testing and verification
 
-经 `flutter test` 运行单元 / widget 测试，经 `flutter run` + 集成测试 (`integration_test`) 做端到端验证。**测试通过是必要条件但非充分条件**——测试太弱时必须指出。
+Runs unit / widget tests via `flutter test`, performs end-to-end verification via `flutter run` + integration tests (`integration_test`). **Test passing is a necessary but not sufficient condition** — weak tests must be identified.
 
-> 🔴 **CHECKPOINT**：本子命令**不**自动安装 Flutter SDK。agent 检测到 `flutter` 不可用时仅提示用户安装，不代为执行。
+> 🔴 **CHECKPOINT**: This subcommand **does not** automatically install the Flutter SDK. When the agent detects `flutter` is unavailable, it only prompts the user to install it, never installs on their behalf.
 
-## 三动作总览
+## Three actions overview
 
-| 动作 | 命令 | 用途 |
+| Action | Command | Purpose |
 | ---- | ---- | ---- |
-| `analyze` | `flutter analyze [lib/]` | Dart 静态分析（语法 / 类型 / lint） |
-| `test` | `flutter test [test/] [--name pattern]` | 运行单元 / widget 测试 |
-| `integration` | `flutter test integration_test/` | 运行 integration_test 端到端测试 |
+| `analyze` | `flutter analyze [lib/]` | Dart static analysis (syntax / types / lint) |
+| `test` | `flutter test [test/] [--name pattern]` | Run unit / widget tests |
+| `integration` | `flutter test integration_test/` | Run integration_test end-to-end tests |
 
-## 测试类型
+## Test types
 
-| 类型 | 目录 | 依赖 | 用途 |
+| Type | Directory | Dependency | Purpose |
 | ---- | ---- | ---- | ---- |
-| 单元测试 | `test/` | `package:test` | 纯 Dart 逻辑（无 widget） |
-| Widget 测试 | `test/` | `package:flutter_test` | 单 widget 渲染 / 交互 |
-| 集成测试 | `integration_test/` | `package:integration_test` | 跨页面 / 真机 / 模拟器端到端 |
+| Unit test | `test/` | `package:test` | Pure Dart logic (no widgets) |
+| Widget test | `test/` | `package:flutter_test` | Single widget rendering / interaction |
+| Integration test | `integration_test/` | `package:integration_test` | Cross-page / real device / emulator end-to-end |
 
-## 执行流程
+## Execution flow
 
-### Step 1：确认环境
+### Step 1: Confirm environment
 
 ```bash
 flutter --version
 ```
 
-`flutter` 不在 PATH → 立即停止，告知用户安装 Flutter SDK。
+`flutter` not in PATH → stop immediately, inform user to install Flutter SDK.
 
-### Step 2：运行 flutter analyze
+### Step 2: Run flutter analyze
 
 ```bash
 flutter analyze
 ```
 
-- 退出码 0 = 无问题；非零 = 有问题。
-- **`flutter analyze` 报错 → 停止流程**，不继续 `flutter test`。提示用户调 `fix` 子命令的 **analyzer 轨道** 修复后重跑。
-- `flutter analyze` 通过 → 进入测试。
+- Exit code 0 = no issues; non-zero = issues exist.
+- **`flutter analyze` reports errors → stop the flow**, do not continue to `flutter test`. Prompt user to use the **analyzer track** of the `fix` subcommand to fix, then re-run.
+- `flutter analyze` passes → proceed to testing.
 
-### Step 3：运行单元 / widget 测试
+### Step 3: Run unit / widget tests
 
 ```bash
 flutter test
 ```
 
-或限定范围：
+Or narrow the scope:
 
 ```bash
 flutter test test/widget_test.dart
 flutter test --name "renders login"
 ```
 
-- 全量测试：`flutter test`（默认扫 `test/` 目录）。
-- 单文件：`flutter test test/foo_test.dart`。
-- 按名过滤：`flutter test --name "pattern"`。
+- Full test suite: `flutter test` (scans `test/` directory by default).
+- Single file: `flutter test test/foo_test.dart`.
+- Filter by name: `flutter test --name "pattern"`.
 
-**测试失败处理**：
+**Test failure handling**:
 
-- 测试失败 → 读失败原因，定位是测试断言错还是被测代码错。
-- 被测代码错 → 调 `fix` 子命令（按症状路由到 analyzer / runtime / layout 轨道）。
-- 测试本身错（断言写错、mock 失效）→ 修测试，**不** 删测试或弱化断言。
-- 修后重跑 `flutter test` 直至全绿。
+- Test fails → read the failure reason, determine whether it is a test assertion error or code-under-test error.
+- Code-under-test error → call `fix` subcommand (route by symptom to analyzer / runtime / layout track).
+- Test itself is wrong (incorrect assertion, broken mock) → fix the test, **do not** delete the test or weaken the assertion.
+- After fixing, re-run `flutter test` until all green.
 
-### Step 4：集成测试（可选）
+### Step 4: Integration tests (optional)
 
-仅当用户需要端到端验证，或工程已有 `integration_test/` 目录时执行。
+Only execute when user needs end-to-end verification, or the project already has an `integration_test/` directory.
 
 ```bash
 flutter test integration_test/
 ```
 
-或在设备上运行：
+Or run on device:
 
 ```bash
 flutter run integration_test/app_test.dart -d <device-id>
 ```
 
-**依赖**：
+**Dependencies**:
 
-- `pubspec.yaml` 的 `dev_dependencies` 必须含 `integration_test: sdk: flutter`。
-- `integration_test/` 目录下的测试文件 import `package:integration_test/integration_test.dart`。
+- `pubspec.yaml`'s `dev_dependencies` must include `integration_test: sdk: flutter`.
+- Test files under `integration_test/` import `package:integration_test/integration_test.dart`.
 
-**多设备选择**：
+**Multi-device selection**:
 
-- `flutter devices` 列出可用设备。
-- 多台设备 → 经 `AskUserQuestion` 让用户选，**禁止** 在用户选定前运行。
-- 0 台设备 → 报告无法运行集成测试，请求用户连接设备或启动模拟器。
+- `flutter devices` lists available devices.
+- Multiple devices → use `AskUserQuestion` to let user select; **do not** run before user selects.
+- 0 devices → report inability to run integration tests, request user to connect a device or start an emulator.
 
-### Step 5：测试质量检查
+### Step 5: Test quality check
 
-测试通过后，agent **MUST** 检查测试质量（Rule 9）：
+After tests pass, the agent **MUST** check test quality (Rule 9):
 
-- 测试是否验证有意义的属性（值、结构、副作用、错误类型），而非仅"函数有返回值"或"不报错"。
-- 断言是否足够强（如 `expect(result, expected)` 而非 `expect(result, isNotNull)`）。
-- 是否覆盖边界情况（空输入、null、越界、错误路径）。
-- 测试太弱时**必须明确指出**，并建议补强断言或加边界用例。
+- Do tests verify meaningful properties (values, structures, side effects, error types), or only check "function has a return value" or "does not throw"?
+- Are assertions strong enough (e.g., `expect(result, expected)` rather than `expect(result, isNotNull)`)?
+- Are edge cases covered (empty input, null, out-of-bounds, error paths)?
+- When tests are too weak, **must explicitly identify** and suggest strengthening assertions or adding edge case tests.
 
-### Step 6：向用户回报
+### Step 6: Report to user
 
-回报内容：
+Report contents:
 
-- `flutter analyze` 状态（通过 / 失败原因）
-- `flutter test` 状态（通过数 / 失败数 / 跳过数）
-- 集成测试状态（如运行）
-- 测试质量评估（强 / 弱 / 需补强）
-- 修复动作（如有，调用了哪个 `fix` 轨道）
+- `flutter analyze` status (pass / failure reason)
+- `flutter test` status (passed count / failed count / skipped count)
+- Integration test status (if run)
+- Test quality assessment (strong / weak / needs strengthening)
+- Fix actions taken (if any, which `fix` track was called)
 
-## 测试编写规范
+## Test writing conventions
 
-### 单元测试
+### Unit tests
 
 ```dart
 import 'package:test/test.dart';
@@ -128,7 +128,7 @@ void main() {
 }
 ```
 
-### Widget 测试
+### Widget tests
 
 ```dart
 import 'package:flutter/material.dart';
@@ -145,14 +145,14 @@ void main() {
 }
 ```
 
-关键规则：
+Key rules:
 
-- `pumpWidget` 包 `MaterialApp` / `Scaffold` 提供 ancestor。
-- `pump()` 触发一帧；`pumpAndSettle()` 等待动画完成。
-- `find.byType` / `find.byKey` / `find.text` 定位 widget。
-- 交互用 `tester.tap` / `tester.enterText`，之后 `await tester.pump()`。
+- Wrap `pumpWidget` with `MaterialApp` / `Scaffold` to provide ancestors.
+- `pump()` triggers one frame; `pumpAndSettle()` waits for animations to complete.
+- `find.byType` / `find.byKey` / `find.text` to locate widgets.
+- Use `tester.tap` / `tester.enterText` for interactions, followed by `await tester.pump()`.
 
-### 集成测试
+### Integration tests
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
@@ -172,22 +172,22 @@ void main() {
 }
 ```
 
-## 边界情形
+## Edge cases
 
-| 情形 | 处理 |
+| Scenario | Handling |
 | ---- | ---- |
-| `flutter` 不可用 | 提示用户安装 Flutter SDK，agent 不代装 |
-| `flutter analyze` 报错 | 停止流程，调 `fix` analyzer 轨道 |
-| `flutter test` 失败 | 区分测试错 / 代码错；代码错调 `fix`，测试错修测试 |
-| 多设备连接 | `flutter devices` 列出；经 `AskUserQuestion` 让用户选 |
-| 0 台设备 | 报告无法运行集成测试；建议启动模拟器 |
-| `integration_test/` 缺失 | 跳过集成测试；提示用户如需端到端可创建 |
-| 测试太弱 | 明确指出弱项；建议补强断言或边界用例 |
+| `flutter` unavailable | Prompt user to install Flutter SDK; agent does not install |
+| `flutter analyze` reports errors | Stop the flow, call `fix` analyzer track |
+| `flutter test` fails | Distinguish test error / code error; code error calls `fix`, test error fixes the test |
+| Multiple devices connected | `flutter devices` lists them; use `AskUserQuestion` to let user select |
+| 0 devices | Report inability to run integration tests; suggest starting an emulator |
+| `integration_test/` missing | Skip integration tests; inform user they can create one if end-to-end is needed |
+| Tests too weak | Explicitly identify weaknesses; suggest strengthening assertions or adding edge case tests |
 
-## 交付核对清单
+## Delivery checklist
 
-- [ ] `flutter analyze` 通过；未通过则已转 `fix` 修复并停止 test
-- [ ] `flutter test` 全绿；未通过则已定位原因（代码错转 `fix`，测试错修测试）
-- [ ] 集成测试（如运行）通过；多设备场景下经 `AskUserQuestion` 让用户选
-- [ ] 测试质量已评估；弱测试已明确指出并建议补强
-- [ ] 回报包含 analyze 状态 / test 通过数 / 集成测试状态 / 质量评估
+- [ ] `flutter analyze` passes; if not, has been routed to `fix` for repair and test stopped
+- [ ] `flutter test` all green; if not, root cause identified (code error → `fix`, test error → fix test)
+- [ ] Integration tests (if run) pass; multi-device scenario uses `AskUserQuestion` for user selection
+- [ ] Test quality assessed; weak tests explicitly identified with suggestions for improvement
+- [ ] Report includes analyze status / test pass count / integration test status / quality assessment

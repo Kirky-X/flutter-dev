@@ -1,20 +1,20 @@
-"""Flutter 文档页面详情抓取。
+"""Flutter documentation page detail fetcher.
 
-抓取 Flutter 文档页面（docs.flutter.cn / api.flutter-io.cn / pub.dev）的 HTML
-内容，转换为 Markdown 后返回。
+Fetches Flutter documentation pages (docs.flutter.cn / api.flutter-io.cn / pub.dev) HTML
+content, converts to Markdown and returns.
 
-用法：
+Usage:
     python3 -m scripts.search.detail <url>
 
-流程：
-1. httpx GET url（follow_redirects=True）
-2. html_to_markdown 转换（复用 _http.py）
-3. 提取页面标题（<title> 或第一个 <h1>）
-4. 返回 {title, url, content}
+Flow:
+1. httpx GET url (follow_redirects=True)
+2. html_to_markdown conversion (reuse _http.py)
+3. Extract page title (<title> or first <h1>)
+4. Return {title, url, content}
 
-设计决策：
-- 不依赖 Flutter 专属 API（Flutter 文档是静态 HTML 站点）
-- 失败显性化：HTTP 错误 / 空内容 / 解析失败时显式上报（Rule 12）
+Design decisions:
+- Does not depend on Flutter-specific APIs (Flutter docs are static HTML sites)
+- Error visibility: explicit reporting on HTTP errors / empty content / parsing failures (Rule 12)
 """
 
 from __future__ import annotations
@@ -48,12 +48,12 @@ from scripts.search._http import (
 
 __all__ = ["detail", "extract_title", "main"]
 
-# <title>...</title> 提取（DOTALL 容忍多行）
+# <title>...</title> extraction (DOTALL tolerates multiline)
 _TITLE_TAG_RE = re.compile(
     r"<title[^>]*>(.*?)</title>",
     re.DOTALL | re.IGNORECASE,
 )
-# 第一个 <h1>...</h1> 提取（fallback）
+# First <h1>...</h1> extraction (fallback)
 _H1_RE = re.compile(
     r"<h1[^>]*>(.*?)</h1>",
     re.DOTALL | re.IGNORECASE,

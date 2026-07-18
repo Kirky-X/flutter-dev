@@ -1,138 +1,138 @@
-# fix 子命令 —— 错误修复（症状路由 + 三轨道）
+# fix subcommand — Error fixing (symptom routing + three tracks)
 
-按用户症状路由到三条修复轨道之一：analyzer 错误（analyzer-errors）/ 运行时崩溃（runtime-errors）/ 布局问题（layout-errors）。**先按症状路由表选轨道，再进入轨道执行**。
+Routes user symptoms to one of three fix tracks: analyzer errors (analyzer-errors) / runtime crashes (runtime-errors) / layout issues (layout-errors). **First route by symptom table to select a track, then enter the track to execute**.
 
-> 🔴 **CHECKPOINT**：症状歧义时按 **analyzer → runtime → layout** 顺序 fallback。禁止凭模型直觉挑轨道。
+> 🔴 **CHECKPOINT**: When symptoms are ambiguous, fall back in the order of **analyzer → runtime → layout**. Do not pick a track based on model intuition.
 
-## 症状路由表
+## Symptom routing table
 
-| 用户症状 | 路由轨道 | 入口 |
+| User symptom | Route track | Entry |
 | ---- | ---- | ---- |
-| 有 `flutter analyze` / 编译失败日志或类型错误，**无** 运行时崩溃 | analyzer | [`references/error-fixes/analyzer-errors.md`](../error-fixes/analyzer-errors.md) |
-| 有运行时崩溃栈 / 异常 / 闪退，**或** build 成功但运行即崩 | runtime | [`references/error-fixes/runtime-errors.md`](../error-fixes/runtime-errors.md) + [`null-safety-errors.md`](../error-fixes/null-safety-errors.md) |
-| 有 RenderFlex overflow / 黄黑条纹 / 布局断言 / missing ancestor | layout | [`references/error-fixes/layout-errors.md`](../error-fixes/layout-errors.md) |
-| 纯语法咨询 / TS→Dart 差异 / "某语法是否允许" | grammar | [`references/grammar/`](../grammar/) |
-| `flutter build` 失败（Gradle / Xcode / CocoaPods / pub） | build | [`references/error-fixes/build-errors.md`](../error-fixes/build-errors.md) |
-| 症状不明 | fallback：analyzer → runtime → layout | 见下文"症状歧义处理" |
+| Has `flutter analyze` / compilation failure logs or type errors, **no** runtime crash | analyzer | [`references/error-fixes/analyzer-errors.md`](../error-fixes/analyzer-errors.md) |
+| Has runtime crash stack / exception / crash-to-desktop, **or** build succeeds but crashes on run | runtime | [`references/error-fixes/runtime-errors.md`](../error-fixes/runtime-errors.md) + [`null-safety-errors.md`](../error-fixes/null-safety-errors.md) |
+| Has RenderFlex overflow / yellow-black stripes / layout assertions / missing ancestor | layout | [`references/error-fixes/layout-errors.md`](../error-fixes/layout-errors.md) |
+| Pure syntax inquiry / TS→Dart differences / "is certain syntax allowed" | grammar | [`references/grammar/`](../grammar/) |
+| `flutter build` fails (Gradle / Xcode / CocoaPods / pub) | build | [`references/error-fixes/build-errors.md`](../error-fixes/build-errors.md) |
+| Symptom unclear | fallback: analyzer → runtime → layout | See "Ambiguous symptom handling" below |
 
-### 症状歧义处理
+### Ambiguous symptom handling
 
-按 `analyzer → runtime → layout` 顺序尝试：编译 / 类型错误信号（`error:`、`A value of type 'X'`、`The method 'foo' isn't defined`）→ analyzer；运行时崩溃信号（`NoSuchMethodError`、`TypeError`、`LateInitializationError`、闪退、build 成功后崩溃）→ runtime；布局断言信号（`RenderFlex overflowed`、`No Material widget found`、黄黑条纹）→ layout；仍不明确 → 经 `AskUserQuestion` 让用户提供更明确症状，不强行猜测。
+Try in order of `analyzer → runtime → layout`: compilation / type error signals (`error:`, `A value of type 'X'`, `The method 'foo' isn't defined`) → analyzer; runtime crash signals (`NoSuchMethodError`, `TypeError`, `LateInitializationError`, crash-to-desktop, build succeeds but crashes) → runtime; layout assertion signals (`RenderFlex overflowed`, `No Material widget found`, yellow-black stripes) → layout; still unclear → use `AskUserQuestion` to ask user for more specific symptoms; do not force guess.
 
 ---
 
-## 轨道一：analyzer（编译 / 类型错误）
+## Track one: analyzer (compilation / type errors)
 
-适用：`flutter analyze` 报错、类型不匹配、编译失败。**无** 运行时崩溃证据。
+Applicable: `flutter analyze` errors, type mismatches, compilation failures. **No** runtime crash evidence.
 
-### 执行流程
+### Execution flow
 
-1. 收集 analyzer 错误原文（来自用户或 `flutter analyze` 输出）。
-2. 提取错误关键词（错误消息中的类型名、API 名、错误码），对照 [`analyzer-errors.md`](../error-fixes/analyzer-errors.md) 定位类别。
-3. 按"Fix"方向做最小修改，**不重构无关代码**。
-4. 修改后跑 `flutter analyze` 验证；仍报错回到步骤 2 重新定位。
-5. `flutter analyze` 通过后，若有运行时嫌疑，建议跑 `flutter run` 或 `flutter test` 验证。
+1. Collect original analyzer error text (from user or `flutter analyze` output).
+2. Extract error keywords (type names, API names, error codes from the error message), cross-reference [`analyzer-errors.md`](../error-fixes/analyzer-errors.md) to locate the category.
+3. Apply minimal fix following the "Fix" direction, **do not refactor unrelated code**.
+4. After modification, run `flutter analyze` to verify; if errors persist, return to step 2 to re-locate.
+5. After `flutter analyze` passes, if there are runtime suspicions, suggest running `flutter run` or `flutter test` to verify.
 
-### 边界情形
+### Edge cases
 
-| 情形 | 处理 |
+| Scenario | Handling |
 | ---- | ---- |
-| 错误不在 analyzer-errors.md 覆盖范围内 | 调 `search` 子命令在线查官方文档；找不到则 fallback 到 grammar 轨道审查语法 |
-| 错误同时涉及多个类别 | 逐类修复，先修最先报的错；每次修后重新跑 `flutter analyze` |
-| 涉及陌生 `package:` API | 调 `search` 查 API 约束，**不** 凭模型记忆瞎改 |
+| Error not covered in analyzer-errors.md | Call `search` subcommand to look up official documentation online; if not found, fall back to grammar track to review syntax |
+| Error spans multiple categories | Fix category by category, fix the earliest-reported error first; re-run `flutter analyze` after each fix |
+| Involves unfamiliar `package:` API | Call `search` to look up API constraints, **do not** modify blindly based on model memory |
 
 ---
 
-## 轨道二：runtime（运行时崩溃 / 异常）
+## Track two: runtime (runtime crashes / exceptions)
 
-适用：运行时异常、闪退、build 成功但运行即崩。
+Applicable: Runtime exceptions, crash-to-desktop, build succeeds but crashes on run.
 
-> 🔴 **核心约束**：在拿到具体崩溃锚点前，**禁止**对工程做大规模 `Read` / `Glob` / `Explore`。锚点包括异常类型 / 异常消息 / 文件名 / 栈顶帧或用户明确指出的崩溃页面 / 模块。
+> 🔴 **Core constraint**: Before obtaining a specific crash anchor, **do not** perform large-scale `Read` / `Glob` / `Explore` on the project. Anchors include exception type / exception message / filename / top stack frame or user-identified crash page / module.
 
-### 收集崩溃证据
+### Collecting crash evidence
 
-**Case A：用户已提供原始异常文本**
+**Case A: User has provided raw exception text**
 
-直接解析异常类型 + 消息 + 栈顶帧，定位到具体文件 / 行。
+Parse exception type + message + top stack frame directly, locate to specific file / line.
 
-**Case B：用户提供日志文件路径**
+**Case B: User provided log file path**
 
-读日志，提取首个应用栈帧（`.dart` 文件路径 + 行号）作为起点。
+Read the log, extract the first application stack frame (`.dart` file path + line number) as the starting point.
 
-**Case C：用户仅描述症状，无日志**
+**Case C: User only describes symptoms, no logs**
 
-- 请求用户复现并采集日志：`flutter run` 时控制台输出，或 `flutter logs` 抓取设备日志。
-- 多设备连接时经 `AskUserQuestion` 让用户选设备。
-- 0 台设备 → 报告无法采集设备证据，请求用户提供本地崩溃日志。
+- Request user to reproduce and collect logs: console output during `flutter run`, or `flutter logs` to capture device logs.
+- When multiple devices are connected, use `AskUserQuestion` to let user select a device.
+- 0 devices → report inability to collect device evidence, request user to provide local crash logs.
 
-### 常见运行时错误特征
+### Common runtime error characteristics
 
-| 异常类型 | 典型原因 | 一线修复方向 |
+| Exception type | Typical cause | First-line fix direction |
 | ---- | ---- | ---- |
-| `NoSuchMethodError` | 调用 null / dynamic 上的不存在方法 | null 守卫、typed model、修 API 调用 |
-| `TypeError` (`type 'X' is not a subtype`) | `as` 转型失败、`List<dynamic>` 当 `List<T>` | 用 `is` 检查、元素级 cast、改 typed model |
-| `LateInitializationError` | `late` 字段在赋值前被读 | 改 `T?` + null 检查，或确保 `initState` 先赋值 |
-| `Null check operator used on a null value` | `!` 用在 null 上 | 改 `??` 默认值或显式 null 检查 |
-| `StackOverflowError` | 无界递归 / build 调 build | 加递归 base case、断重建循环 |
-| `StateError` | 生命周期错位（Completer 重复 complete 等） | 加状态守卫、移到正确生命周期 |
-| `RangeError` | 数组越界 / 范围非法 | 加边界检查、用 `elementAtOrNull` |
+| `NoSuchMethodError` | Calling non-existent method on null / dynamic | null guard, typed model, fix API call |
+| `TypeError` (`type 'X' is not a subtype`) | `as` cast failure, `List<dynamic>` used as `List<T>` | Use `is` check, element-level cast, switch to typed model |
+| `LateInitializationError` | `late` field read before assignment | Change to `T?` + null check, or ensure `initState` assigns first |
+| `Null check operator used on a null value` | `!` used on null | Change to `??` default or explicit null check |
+| `StackOverflowError` | Unbounded recursion / build calls build | Add recursion base case, break rebuild loop |
+| `StateError` | Lifecycle mismatch (e.g., Completer completed twice) | Add state guard, move to correct lifecycle |
+| `RangeError` | Array out of bounds / illegal range | Add boundary check, use `elementAtOrNull` |
 
-### 解释规则
+### Interpretation rules
 
-- 优先看应用栈帧（`.dart` 文件），过滤框架噪声；第一个具体 `.dart` 路径作为起点，**不** 作为最终结论。
-- 用户给了复现步骤 → 信任用户步骤胜于纯栈猜；栈指向非入口页 → 假定交互触发。
-- **不** 大范围重构；先修崩溃路径。
+- Prioritize application stack frames (`.dart` files), filter framework noise; the first concrete `.dart` path is used as the starting point, **not** as the final conclusion.
+- User provided reproduction steps → trust user steps over pure stack guessing; stack points to non-entry page → assume interaction trigger.
+- **Do not** do large-scale refactoring; fix the crash path first.
 
-### 约束
+### Constraints
 
-- **禁止** 仅凭 prompt 推理就声称修好了崩溃。
-- **禁止** 用 try/catch 吞错替代根因修复。
-- 涉及陌生 `package:` API → 先查约束再改。
-- 本子命令**不** 决定最终编译 / 运行 / 验证次序，那是 `test` 子命令的事。
-
----
-
-## 轨道三：layout（布局问题）
-
-适用：RenderFlex overflow、unbounded constraints、missing ancestor、setState during build 等布局断言。
-
-### 执行流程
-
-1. 读断言消息——它会指出违规 widget 和轴向（`on the right` = 水平溢出）。
-2. 对照 [`layout-errors.md`](../error-fixes/layout-errors.md) 定位错误类别。
-3. 应用最小修复（`Expanded` / `SizedBox` / `Material` 包裹 / `Directionality` 等）。
-4. 重新 `flutter run` 验证黄黑条纹消失。
-
-### 边界情形
-
-| 情形 | 处理 |
-| ---- | ---- |
-| 断言消息未明确 widget | 从栈帧定位 build 调用链；找最近一个 `Flex` / `Viewport` |
-| 修复后仍有溢出 | 检查父级约束链；可能需要多层 `Expanded` / `ConstrainedBox` |
-| `setState during build` | 改用 `addPostFrameCallback` 延迟状态变更 |
+- **Do not** claim a crash is fixed based solely on prompt reasoning.
+- **Do not** use try/catch to swallow errors as a substitute for root cause fixing.
+- Involves unfamiliar `package:` API → look up constraints before modifying.
+- This subcommand **does not** determine the final compile / run / verification order — that is the `test` subcommand's responsibility.
 
 ---
 
-## 跨轨道协同
+## Track three: layout (layout issues)
 
-| 场景 | 协同 |
+Applicable: RenderFlex overflow, unbounded constraints, missing ancestor, setState during build, and other layout assertions.
+
+### Execution flow
+
+1. Read the assertion message — it will identify the violating widget and axis (`on the right` = horizontal overflow).
+2. Cross-reference [`layout-errors.md`](../error-fixes/layout-errors.md) to locate the error category.
+3. Apply minimal fix (`Expanded` / `SizedBox` / `Material` wrapping / `Directionality` etc.).
+4. Re-run `flutter run` to verify yellow-black stripes have disappeared.
+
+### Edge cases
+
+| Scenario | Handling |
 | ---- | ---- |
-| analyzer 遇到陌生 `package:` API 错误 | 调 `search` 子命令在线查官方文档 |
-| runtime 涉及未知 API 约束 | 调 `search` 子命令在线查 |
-| layout 修复后仍有运行时崩溃 | 转 runtime 轨道 |
-| test 子命令运行时崩溃 | test 输出栈 → 喂给 runtime 轨道 |
-| grammar 不确定某限制 | 看 [`restrictions.md`](../grammar/restrictions.md)；仍不确定调 `search` |
+| Assertion message does not clearly identify widget | Locate the build call chain from stack frames; find the nearest `Flex` / `Viewport` |
+| Overflow persists after fix | Check parent constraint chain; may need multiple levels of `Expanded` / `ConstrainedBox` |
+| `setState during build` | Use `addPostFrameCallback` to defer state changes |
 
-## 交付核对清单
+---
 
-### analyzer 轨道
-- [ ] analyzer 错误原文已收集；错误类别已在 `analyzer-errors.md` 内定位（或确认表外并调 search）
-- [ ] 修改最小化，不重构无关代码；修改后 `flutter analyze` 通过
+## Cross-track collaboration
 
-### runtime 轨道
-- [ ] 拿到具体异常锚点后才进入定向代码读取；无锚点时不大规模读代码
-- [ ] 修复后跑 `flutter run` 或 `flutter test` 验证
+| Scenario | Collaboration |
+| ---- | ---- |
+| analyzer encounters unfamiliar `package:` API error | Call `search` subcommand to look up official documentation online |
+| runtime involves unknown API constraints | Call `search` subcommand to look up online |
+| layout fix still results in runtime crash | Route to runtime track |
+| test subcommand encounters runtime crash | Feed test output stack → to runtime track |
+| grammar unsure about certain restriction | Check [`restrictions.md`](../grammar/restrictions.md); if still unsure, call `search` |
 
-### layout 轨道
-- [ ] 断言消息已读取；错误类别已定位
-- [ ] 修复后 `flutter run` 验证溢出 / 断言消失
+## Delivery checklist
+
+### analyzer track
+- [ ] Original analyzer error text collected; error category located within `analyzer-errors.md` (or confirmed outside the table and search called)
+- [ ] Fix is minimal, no refactoring of unrelated code; `flutter analyze` passes after fix
+
+### runtime track
+- [ ] Directed code reading only begins after obtaining a specific exception anchor; no large-scale code reading without anchor
+- [ ] `flutter run` or `flutter test` run to verify after fix
+
+### layout track
+- [ ] Assertion message read; error category located
+- [ ] `flutter run` verifies overflow / assertion disappears after fix

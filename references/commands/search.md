@@ -1,31 +1,31 @@
-# search 子命令 —— 在线文档搜索
+# search subcommand — Online documentation search
 
-本地 sidebars 匹配 + URL 内容抓取。优先匹配本地 sidebars（快速、离线），命中后可选抓取 URL 正文（HTML→Markdown 清洗）。
+Local sidebars matching + URL content fetching. Prioritizes matching local sidebars (fast, offline), and optionally fetches URL body (HTML→Markdown cleanup) upon hit.
 
-> 🔴 **端点来源**：Flutter 文档主域 `docs.flutter.dev` / `api.flutter.dev`；sidebars 列表从 `sidebars/` 目录读。
+> 🔴 **Endpoint source**: Flutter documentation main domain `docs.flutter.dev` / `api.flutter.dev`; sidebars list read from `sidebars/` directory.
 
-## 两阶段搜索
+## Two-phase search
 
-| 阶段 | 用途 | 数据源 |
+| Phase | Purpose | Data source |
 | ---- | ---- | ---- |
-| 1. 本地 sidebars 匹配 | 快速定位文档 URL / 标题 | `sidebars/*.md`（已索引到 kb） |
-| 2. URL 内容抓取 | 取完整正文 | `docs.flutter.dev` / `api.flutter.dev` / `dart.dev` |
+| 1. Local sidebars matching | Quickly locate document URL / title | `sidebars/*.md` (already indexed into kb) |
+| 2. URL content fetching | Retrieve full body content | `docs.flutter.dev` / `api.flutter.dev` / `dart.dev` |
 
-优先走阶段 1（kb 已索引）；需要正文时走阶段 2 抓取 URL。
+Prioritize phase 1 (kb already indexed); fetch URL via phase 2 when body content is needed.
 
-## sidebar 路由（按查询意图）
+## Sidebar routing (by query intent)
 
-| 用户查询意图 | sidebar | 说明 |
+| User query intent | sidebar | Description |
 | ---- | ---- | ---- |
-| Flutter 教程 / 指南 / 步骤 | `flutter-docs.md` | 操作指南、cookbook、教程 |
-| Flutter API / Widget / 类 / 方法 | `flutter-api.md` | API 参考 |
-| Flutter AI 辅助开发 | `flutter-ai-docs.md` | AI 工具链文档 |
-| Dart 语言 / SDK | （调 kb 全库） | `dart.dev` 也可直访 |
-| 不确定 / 综合 | 不指定 `--doc-type` | 全库检索 |
+| Flutter tutorials / guides / steps | `flutter-docs.md` | How-to guides, cookbook, tutorials |
+| Flutter API / Widget / class / method | `flutter-api.md` | API reference |
+| Flutter AI-assisted development | `flutter-ai-docs.md` | AI toolchain documentation |
+| Dart language / SDK | (query kb full library) | `dart.dev` also directly accessible |
+| Uncertain / comprehensive | Do not specify `--doc-type` | Full library search |
 
-## 命令格式
+## Command format
 
-### 本地匹配（经 kb）
+### Local matching (via kb)
 
 ```bash
 python3 -m scripts.kb.cli query \
@@ -34,139 +34,139 @@ python3 -m scripts.kb.cli query \
   [--top-k 5]
 ```
 
-详见 [`kb.md`](kb.md)。
+See [`kb.md`](kb.md) for details.
 
-### URL 内容抓取
+### URL content fetching
 
 ```bash
 python3 scripts/search/detail.py <object_id> <doc_type>
 ```
 
-参数：
+Parameters:
 
-| 参数 | 必填 | 说明 |
+| Parameter | Required | Description |
 | ---- | ---- | ---- |
-| `object_id` | 是 | 文档 URL 末段或 kb 命中的 `id` |
-| `doc_type` | 是 | sidebar 类型之一 |
+| `object_id` | Yes | Last segment of document URL or `id` from kb hit |
+| `doc_type` | Yes | One of the sidebar types |
 
-> 🔴 **detail 是 search 子命令的正文获取通道**：`detail.py` 负责 HTML→Markdown 清洗与 anchors 提取，kb 的 description/links 回填都走此通道。
+> 🔴 **detail is the body fetching channel for the search subcommand**: `detail.py` handles HTML→Markdown cleanup and anchor extraction; kb's description/links backfill all go through this channel.
 
-## 输出格式
+## Output format
 
-### kb query 输出
+### kb query output
 
-JSON 数组，每项含 `id` / `title` / `url` / `score` / `doc_type` / `description` / `needs_description`。
+JSON array, each item contains `id` / `title` / `url` / `score` / `doc_type` / `description` / `needs_description`.
 
-### detail 输出
+### detail output
 
 ```json
 {
-  "title": "文档标题",
+  "title": "Document title",
   "object_id": "xxx",
   "doc_type": "flutter-docs",
-  "anchors": [{"id": "锚点ID", "title": "章节标题"}],
-  "content": "Markdown 格式正文，保留标题/代码块/列表/链接/表格/引用结构"
+  "anchors": [{"id": "anchor_id", "title": "Section title"}],
+  "content": "Markdown body preserving headings/code blocks/lists/links/tables/blockquotes"
 }
 ```
 
-`content` 为完整 Markdown 正文，可直接向用户呈现。
+`content` is the complete Markdown body, ready to present directly to the user.
 
-## 锚点导航
+## Anchor navigation
 
-`detail` 输出含 `anchors` 字段（`[{id, title}]`）。
+`detail` output includes an `anchors` field (`[{id, title}]`).
 
-`detail` 返回的 `content` > 3000 字时，**先** 展示 `anchors` 目录让用户选章节，再按选定锚点截取相关段落。**不** 自动堆全部内容。
+When `detail` returns `content` > 3000 characters, **first** display the `anchors` directory for the user to select a section, then extract the relevant paragraphs by the chosen anchor. **Do not** automatically dump all content.
 
-| 场景 | 处理 |
+| Scenario | Handling |
 | ---- | ---- |
-| 用户问特定章节 | 利用 `anchors` 定位，截取相关段落 |
-| 内容很长（>3000 字） | 先展示 `anchors` 目录让用户选 |
-| 用户需要完整文档 | 直接输出全部 `content` |
-| 用户需要代码示例 | 重点展示代码块部分 |
+| User asks about a specific section | Use `anchors` to locate and extract relevant paragraphs |
+| Content is long (>3000 chars) | Show `anchors` directory first for user to select |
+| User needs the full document | Output all `content` directly |
+| User needs code examples | Focus on displaying code block sections |
 
-## 错误处理
+## Error handling
 
-| 场景 | 现象 | 处理 |
+| Scenario | Symptom | Handling |
 | ---- | ---- | ---- |
-| 本地无结果 | kb query 返回空 | agent 层换关键词重试（**最多 2 次**）；建议缩短关键词、换英文术语；仍为 0 转 URL 抓取 |
-| URL 详情获取失败 | detail 返回 `error` 字段 | 提示文档可能下线，提供 search 结果中的 `url` 供直接访问 |
-| 网络错误 | HTTPError / 连接失败 | **显式报告**，不静默；建议稍后重试 |
-| `doc_type` 参数错误 | argparse 校验失败 | 退出码 2；提示合法 doc_type |
-| 内容为空 | `content: ""` | 文档可能更新中；提供 `url` 让用户直接查看 |
-| `object_id` 不存在 | detail API error | 确认 `object_id` 拼写；或重新 search 获取最新结果 |
+| No local results | kb query returns empty | Agent layer retries with different keywords (**up to 2 times**); suggest shortening keywords or switching to English terms; if still 0, fall back to URL fetching |
+| URL detail fetch failure | detail returns `error` field | Indicate document may be offline; provide `url` from search results for direct access |
+| Network error | HTTPError / connection failure | **Explicitly report**, never silently swallow; suggest retrying later |
+| `doc_type` parameter error | argparse validation fails | Exit code 2; indicate valid doc_type values |
+| Empty content | `content: ""` | Document may be updating; provide `url` for user to view directly |
+| `object_id` does not exist | detail API error | Verify `object_id` spelling; or re-search to get latest results |
 
-> 🔴 **CHECKPOINT**：脚本层**不重试**零结果响应（重试逻辑归 agent 层）。脚本只把错误显式写入 `errors` 字段。
+> 🔴 **CHECKPOINT**: The script layer **does not retry** zero-result responses (retry logic belongs to the agent layer). Scripts only explicitly write errors into the `errors` field.
 
-## 工作流
+## Workflow
 
 ```
-1. kb query(keyword, doc_type?) — 本地匹配
-   ├─ 命中 → 展示结果列表，询问用户想查看哪个文档
-   └─ 无结果 → 换关键词重试（最多 2 次）→ 仍无 → 转 URL 抓取
-2. detail(object_id, doc_type) — 抓取 URL 正文
-   ├─ content 非空 → 输出 Markdown（长文档先给 anchors 目录）
-   └─ content 为空 → 告知用户并提供 url
-3. kb 协同（如 needs_description=True）：
-   ├─ 回填 description（≤200 字）
-   └─ update-links 双向链接
+1. kb query(keyword, doc_type?) — local matching
+   ├─ Hit → display result list, ask user which document to view
+   └─ No results → retry with different keywords (up to 2 times) → still none → fall back to URL fetching
+2. detail(object_id, doc_type) — fetch URL body
+   ├─ content non-empty → output Markdown (for long documents, show anchors directory first)
+   └─ content empty → inform user and provide url
+3. kb collaboration (if needs_description=True):
+   ├─ Backfill description (≤200 chars)
+   └─ update-links bidirectional linking
 ```
 
-文字步骤速查：
+Quick reference text steps:
 
-1. `kb query(keyword)` 选 doc_type → 2. 展示列表让用户选 → 3. `detail(object_id, doc_type)` 取正文 → 4. 输出 Markdown（长文档先给 anchors 目录）→ 5. kb 协同回填 description + update-links 双向链接。
+1. `kb query(keyword)` select doc_type → 2. Display list for user to select → 3. `detail(object_id, doc_type)` fetch body → 4. Output Markdown (for long documents, show anchors directory first) → 5. kb collaboration: backfill description + update-links bidirectional linking.
 
-## 关键词选择策略
+## Keyword selection strategy
 
-- 优先用文档中可能出现的精确术语（如 `ListView`、`SliverAppBar`、`StatefulWidget`）。
-- 中英文均可；中文偏指南，英文偏 API 参考。
-- Widget 名直接作为关键词（如 `CustomScrollView`）。
-- 搜索无结果时：缩短关键词、换英文术语、去掉版本号重试。
-- Dart 语言问题可直访 `dart.dev/language`。
+- Prefer exact terms that may appear in documentation (e.g., `ListView`, `SliverAppBar`, `StatefulWidget`).
+- Both Chinese and English are acceptable; Chinese偏向 guides, English偏向 API reference.
+- Use Widget names directly as keywords (e.g., `CustomScrollView`).
+- When search returns no results: shorten keywords, switch to English terms, remove version numbers and retry.
+- Dart language questions can directly visit `dart.dev/language`.
 
-## 与 kb 协同
+## Collaboration with kb
 
-`search detail` 是 `kb` 子命令 `description` 懒填充与链接提取的**唯一合法正文来源**：
+`search detail` is the **sole legitimate body source** for `kb` subcommand's `description` lazy filling and link extraction:
 
-- `kb query` 命中 `needs_description=True` 文档 → agent 调 `search detail <object_id> <doc_type>` 取正文 → 生成 ≤200 字 description → `kb update-description` 回填。
-- 同一正文 → `kb update-links --id <id> --content "<markdown>"` 提取双向链接。
+- `kb query` hits `needs_description=True` document → agent calls `search detail <object_id> <doc_type>` to fetch body → generates ≤200 char description → `kb update-description` backfills.
+- Same body → `kb update-links --id <id> --content "<markdown>"` extracts bidirectional links.
 
-详见 [`kb.md`](kb.md) 的"懒填充流程"与"update-links"章节。
+See "Lazy filling workflow" and "update-links" sections in [`kb.md`](kb.md).
 
-## 与 fix 协同
+## Collaboration with fix
 
-`fix` 子命令遇到陌生 `package:` API 或不在 error-fixes 覆盖表内的错误时：
+When the `fix` subcommand encounters an unfamiliar `package:` API or an error not covered by the error-fixes table:
 
-- 调 `search` 在线查官方文档 → 补充修复依据。
-- 不要凭模型记忆下结论。
+- Call `search` to look up official documentation online → supplement fix rationale.
+- Do not rely on model memory to draw conclusions.
 
-## 边界情形
+## Edge cases
 
-| 情形 | 处理 |
+| Scenario | Handling |
 | ---- | ---- |
-| 本地无结果，URL 也抓取失败 | 告知用户；建议直访 `docs.flutter.dev` |
-| `--doc-type` 非合法值 | argparse 报错，退出码 2 |
-| 用户未指定意图 | 不传 `--doc-type`，全库检索 |
-| 结果过多 | 建议用户缩小范围或指定 `--doc-type` |
-| `keyword` 为空 | argparse 报错，退出码 2 |
-| 网络超时 | 显式 `errors` 上报，不静默 |
+| No local results, URL fetch also fails | Inform user; suggest visiting `docs.flutter.dev` directly |
+| `--doc-type` is not a valid value | argparse error, exit code 2 |
+| User did not specify intent | Do not pass `--doc-type`, search full library |
+| Too many results | Suggest user narrow scope or specify `--doc-type` |
+| `keyword` is empty | argparse error, exit code 2 |
+| Network timeout | Explicitly report in `errors`, never silently swallow |
 
-## 交付核对清单
+## Delivery checklist
 
-### search 流程
-- [ ] `keyword` 非空
-- [ ] `--doc-type`（若有）属于合法值
-- [ ] 本地无结果时 agent 层换关键词重试（最多 2 次），仍无转 URL 抓取
-- [ ] 结果展示后**不自动取详情**，等用户选
+### search workflow
+- [ ] `keyword` is non-empty
+- [ ] `--doc-type` (if provided) is a valid value
+- [ ] When no local results, agent layer retries with different keywords (up to 2 times); still none falls back to URL fetching
+- [ ] After displaying results, **do not automatically fetch details**; wait for user selection
 
-### detail 流程
-- [ ] `object_id` 来自 search 结果（非手动编造）
-- [ ] `doc_type` 属于合法值
-- [ ] `content` 为空时提供 `url` 让用户直访
-- [ ] `content > 3000` 字时先展示 `anchors` 目录
+### detail workflow
+- [ ] `object_id` comes from search results (not manually fabricated)
+- [ ] `doc_type` is a valid value
+- [ ] When `content` is empty, provide `url` for user to visit directly
+- [ ] When `content > 3000` chars, show `anchors` directory first
 
-### 与 kb 协同
-- [ ] `kb query` 命中 `needs_description=True` 时已调 `search detail` 取正文
-- [ ] 取正文后已用 `kb update-description` 回填 + `kb update-links` 提取双向链接
+### kb collaboration
+- [ ] When `kb query` hits `needs_description=True`, `search detail` has been called to fetch body
+- [ ] After fetching body, `kb update-description` backfill + `kb update-links` bidirectional link extraction have been performed
 
-### 错误处理
-- [ ] 网络错误 / `errors` 非空时已显式上报，未静默吞错
+### Error handling
+- [ ] Network errors / non-empty `errors` have been explicitly reported, not silently swallowed

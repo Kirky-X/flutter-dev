@@ -1,120 +1,120 @@
-# kb 子命令 —— 本地 Qdrant 知识库
+# kb subcommand — Local Qdrant knowledge base
 
-本地 Qdrant 知识库，按 sidebar 文档分类存储，向量嵌入 + bm25 关键词索引 + 可选重排。`description` 懒填充 + 向量回填 + 双向链接。
+Local Qdrant knowledge base, stored by sidebar document categories, with vector embeddings + bm25 keyword indexing + optional reranking. `description` lazy filling + vector backfill + bidirectional links.
 
-> 🔴 **CHECKPOINT**：所有路径 / 模型名 / 端点都从 `config.json` 读，禁止硬编码。
+> 🔴 **CHECKPOINT**: All paths / model names / endpoints are read from `config.json`; hardcoding is prohibited.
 
-## 子动作路由表
+## Sub-action routing table
 
-命令格式：`python3 -m scripts.kb.cli <action> [args]`
+Command format: `python3 -m scripts.kb.cli <action> [args]`
 
-| 子动作 | 用途 | 关键参数 |
+| Sub-action | Purpose | Key parameters |
 | ---- | ---- | ---- |
-| `query`（默认） | 混合向量+BM25 检索 | `--question` `--top-k` `--doc-type` `--rerank` |
-| `build` | 解析 sidebars 构建索引 | `--sidebars-dir` |
-| `merge` | 合并两个库为新库 | `--db-a` `--db-b` `--out` |
-| `reindex` | 重算向量 | `--force` |
-| `update-description` | 回填单文档 description | `--id` `--description` |
-| `update-links` | 提取并写入双向链接 | `--id` `--content` |
-| `config` | 打印当前生效配置 | （无） |
+| `query` (default) | Hybrid vector+BM25 retrieval | `--question` `--top-k` `--doc-type` `--rerank` |
+| `build` | Parse sidebars and build index | `--sidebars-dir` |
+| `merge` | Merge two databases into a new one | `--db-a` `--db-b` `--out` |
+| `reindex` | Recompute vectors | `--force` |
+| `update-description` | Backfill single document description | `--id` `--description` |
+| `update-links` | Extract and write bidirectional links | `--id` `--content` |
+| `config` | Print currently active configuration | (none) |
 
-`--config <path>` 全局可选，覆盖默认 `config.json` 加载路径。
+`--config <path>` is globally optional, overriding the default `config.json` load path.
 
-## doc_type 与 sidebar 映射
+## doc_type and sidebar mapping
 
-Flutter sidebars（位于 `sidebars/` 目录）：
+Flutter sidebars (located in `sidebars/` directory):
 
-| doc_type | sidebar 文件 | 内容 |
+| doc_type | sidebar file | Content |
 | ---- | ---- | ---- |
-| `flutter-docs` | `flutter-docs.md` | Flutter 官方文档（指南 / 教程） |
-| `flutter-api` | `flutter-api.md` | Flutter API 参考（Widget / 类 / 方法） |
-| `flutter-ai-docs` | `flutter-ai-docs.md` | Flutter AI 辅助开发文档 |
+| `flutter-docs` | `flutter-docs.md` | Flutter official documentation (guides / tutorials) |
+| `flutter-api` | `flutter-api.md` | Flutter API reference (Widget / class / method) |
+| `flutter-ai-docs` | `flutter-ai-docs.md` | Flutter AI-assisted development documentation |
 
-`query --doc-type` 只接受上述类型之一；不指定则全库检索。
+`query --doc-type` only accepts one of the above types; if not specified, searches the full library.
 
-## config.json 字段说明
+## config.json field descriptions
 
-| 字段 | 默认值 | 说明 |
+| Field | Default | Description |
 | ---- | ---- | ---- |
-| `embed_model` | 嵌入模型名 | `openai://` 前缀走云端 |
-| `embed_dim` | 嵌入维度 | 必须与模型匹配 |
-| `embed_source` | `modelscope` / `local` / `openai` | 模型来源 |
-| `rerank_model` | 重排模型；`none` 禁用 | |
-| `db_path` | Qdrant 本地存储路径 | |
-| `collection` | 集合名 | |
-| `sidebars_dir` | `sidebars` | sidebar 源目录 |
-| `query.default_top_k` | `5` | `query` 默认 top-k |
+| `embed_model` | Embedding model name | `openai://` prefix uses cloud |
+| `embed_dim` | Embedding dimension | Must match the model |
+| `embed_source` | `modelscope` / `local` / `openai` | Model source |
+| `rerank_model` | Reranking model; `none` disables | |
+| `db_path` | Qdrant local storage path | |
+| `collection` | Collection name | |
+| `sidebars_dir` | `sidebars` | Sidebar source directory |
+| `query.default_top_k` | `5` | Default top-k for `query` |
 
-## 主要流程
+## Main workflows
 
-### 1. query（默认子动作）
+### 1. query (default sub-action)
 
 ```bash
 python3 -m scripts.kb.cli query \
-  --question "如何在 Flutter 里实现一个登录页" \
+  --question "How to implement a login page in Flutter" \
   [--top-k 5] \
   [--doc-type flutter-docs] \
   [--rerank]
 ```
 
-未传 `--top-k` → 用 `config.json` 的 `query.default_top_k`（默认 5）。
+When `--top-k` is not provided, uses `config.json`'s `query.default_top_k` (default 5).
 
-输出 JSON 数组，每项含 `id` / `title` / `url` / `score` / `doc_type` / `description` / `needs_description` 等字段。
+Outputs a JSON array, each item containing `id` / `title` / `url` / `score` / `doc_type` / `description` / `needs_description` and other fields.
 
-#### 命中 `needs_description=True` → 触发懒填充
+#### Hit `needs_description=True` → triggers lazy filling
 
-`description` 字段为空或为 "无描述" 时，`needs_description=True`。agent **MUST** 执行懒填充：
+When the `description` field is empty or "无描述", `needs_description=True`. The agent **MUST** execute lazy filling:
 
-1. 从命中文档取 `id`（即 `object_id`）与 `doc_type`。
-2. 调 `search detail` 取正文：
+1. Retrieve `id` (i.e., `object_id`) and `doc_type` from the matched document.
+2. Call `search detail` to fetch body content:
    ```bash
    python3 scripts/search/detail.py <object_id> <doc_type>
    ```
-3. agent 基于正文生成 **≤200 字** description。
-4. 回填并重算向量：
+3. Agent generates a **≤200 character** description based on the body content.
+4. Backfill and recompute vector:
    ```bash
    python3 -m scripts.kb.cli update-description \
      --id <id> \
-     --description "<不超 200 字的描述>"
+     --description "<description no more than 200 characters>"
    ```
-5. 触发链接提取流程（见下文）。
+5. Trigger the link extraction workflow (see below).
 
-### 2. update-links（双向链接提取）
+### 2. update-links (bidirectional link extraction)
 
 ```bash
 python3 -m scripts.kb.cli update-links \
   --id <id> \
-  --content "<markdown 正文>"
+  --content "<markdown body>"
 ```
 
-`--content` 也支持传文件路径（脚本检测到路径存在则读文件）。
+`--content` also accepts a file path (the script reads the file if the path exists).
 
-脚本行为：
+Script behavior:
 
-- 解析正文中的"相关推荐"区块。
-- 把推荐链接的 URL → id 映射。
-- **双向写入**：A 文档的 `related_ids` 加 B，B 文档的 `related_ids` 也加 A。
+- Parses the "Related recommendations" block in the body content.
+- Maps recommended link URLs → ids.
+- **Bidirectional write**: Document A's `related_ids` adds B, and document B's `related_ids` also adds A.
 
-> 🔴 **CHECKPOINT**：双向链接必须真正双向写入；不允许只写单向。
+> 🔴 **CHECKPOINT**: Bidirectional links must be truly written in both directions; single-direction writes are not permitted.
 
-### 3. build（构建索引）
+### 3. build (build index)
 
 ```bash
 python3 -m scripts.kb.cli build [--sidebars-dir <dir>]
 ```
 
-脚本：解析 sidebar 文件 → 生成文档记录 → 嵌入 → 写入 Qdrant。输出 `{built, counts}`。
+Script: Parses sidebar files → generates document records → embeds → writes to Qdrant. Outputs `{built, counts}`.
 
-### 4. reindex（重算向量）
+### 4. reindex (recompute vectors)
 
 ```bash
 python3 -m scripts.kb.cli reindex [--force]
 ```
 
-不带 `--force` → 仅对 `content_hash` 与 `title+url+doc_type` 不一致的文档重算。
-带 `--force` → 全量重算所有文档向量。
+Without `--force` → only recomputes documents where `content_hash` and `title+url+doc_type` are inconsistent.
+With `--force` → full recomputation of all document vectors.
 
-### 5. merge（合并两个库）
+### 5. merge (merge two databases)
 
 ```bash
 python3 -m scripts.kb.cli merge \
@@ -123,78 +123,78 @@ python3 -m scripts.kb.cli merge \
   --out <new_path>
 ```
 
-脚本行为：
+Script behavior:
 
-1. 创建新库 `<new_path>`。
-2. 把 A、B 两个旧库改名为 `<old>.bak.<timestamp>`（备份）。
-3. 字段级 `updated_at` 比较：同一文档（按 `id`）取 `updated_at` 较新的一方。
-4. 输出 JSON `{merged, needs_reindex_count, ...}`。
-5. `needs_reindex_count > 0` → 脚本在 stderr 提示在新库跑 `reindex --force`。
+1. Creates a new database at `<new_path>`.
+2. Renames both old databases A and B to `<old>.bak.<timestamp>` (backup).
+3. Field-level `updated_at` comparison: for the same document (by `id`), takes the one with the newer `updated_at`.
+4. Outputs JSON `{merged, needs_reindex_count, ...}`.
+5. When `needs_reindex_count > 0` → script prompts on stderr to run `reindex --force` on the new database.
 
-### 6. update-description（单文档 description 回填）
+### 6. update-description (single document description backfill)
 
 ```bash
 python3 -m scripts.kb.cli update-description \
   --id <id> \
-  --description "<不超 200 字>"
+  --description "<no more than 200 characters>"
 ```
 
-脚本：写入 description → 重算该文档向量 → 更新 `updated_at`。输出 `{updated: <id>}`。
+Script: Writes description → recomputes the document vector → updates `updated_at`. Outputs `{updated: <id>}`.
 
-### 7. config（打印生效配置）
+### 7. config (print active configuration)
 
 ```bash
 python3 -m scripts.kb.cli config
 ```
 
-## Flutter references 协同
+## Flutter references collaboration
 
-查询 Flutter 问题（widget / 布局 / 状态管理 / Dart 代码）时，**同时**参考 `references/`：
+When querying Flutter issues (widget / layout / state management / Dart code), **also** consult `references/`:
 
-| 文件 | 用途 |
+| File | Purpose |
 | ---- | ---- |
 | `references/flutter-ui/widget-cookbook.md` | Widget cookbook |
-| `references/flutter-ui/api-guardrails.md` | API 使用护栏 |
-| `references/flutter-ui/common-mistakes.md` | 常见错误 |
-| `references/flutter-ui/ui-quality-checklist.md` | UI 质量检查清单 |
-| `references/grammar/dart-syntax.md` | Dart 语法 |
-| `references/dev-rules.md` | 开发规则 |
+| `references/flutter-ui/api-guardrails.md` | API usage guardrails |
+| `references/flutter-ui/common-mistakes.md` | Common mistakes |
+| `references/flutter-ui/ui-quality-checklist.md` | UI quality checklist |
+| `references/grammar/dart-syntax.md` | Dart syntax |
+| `references/dev-rules.md` | Development rules |
 
-`kb query` 命中 Flutter 主题文档后，agent 应**同时**查阅上述 references，避免给出与项目风格冲突的建议。
+After `kb query` hits Flutter topic documents, the agent should **also** consult the above references to avoid giving suggestions that conflict with project style.
 
-## 失败模式与 fallback
+## Failure modes and fallbacks
 
-| 触发条件 | 一线修复 | 兜底 |
+| Trigger condition | First-line fix | Fallback |
 | ---- | ---- | ---- |
-| `config.json` 缺失 | agent 经 `AskUserQuestion` 询问，选默认则生成默认配置 | 用户拒绝则停止 |
-| 预构建库不存在 | 调 `kb build` 从 `sidebars/` 重建 | `sidebars/` 缺失则提示用户 |
-| `kb query` 无结果 | 换关键词或调 `search` 在线搜索 | `search` 也无结果则建议直访 `docs.flutter.dev` |
-| 模型下载失败 | 重试 + 镜像源配置 | 提示用户手动下载或切云端模型 |
+| `config.json` missing | Agent asks via `AskUserQuestion`; if user selects default, generate default config | If user declines, stop |
+| Pre-built database does not exist | Call `kb build` to rebuild from `sidebars/` | If `sidebars/` is missing, prompt user |
+| `kb query` returns no results | Change keywords or call `search` for online search | If `search` also returns no results, suggest visiting `docs.flutter.dev` directly |
+| Model download fails | Retry + mirror source configuration | Prompt user to download manually or switch to cloud model |
 
-## 边界情形
+## Edge cases
 
-| 情形 | 处理 |
+| Scenario | Handling |
 | ---- | ---- |
-| `--doc-type` 非合法值 | argparse 校验失败，退出码 2；提示合法值 |
-| `query` 命中但 `needs_description=True` | 必须执行 description 懒填充流程；不填充算违规 |
-| `update-links` 仅单向写 | 禁止；脚本必须双向写 `related_ids` |
-| `merge` 后 `needs_reindex_count > 0` | 在新库跑 `reindex --force` 刷新向量 |
-| 切换模型后维度不匹配 | 同步改 `embed_dim`，再 `reindex --force` |
+| `--doc-type` is not a valid value | argparse validation fails, exit code 2; indicate valid values |
+| `query` hits but `needs_description=True` | Must execute description lazy filling workflow; not filling is a violation |
+| `update-links` only writes one direction | Prohibited; script must bidirectionally write `related_ids` |
+| After `merge`, `needs_reindex_count > 0` | Run `reindex --force` on new database to refresh vectors |
+| Dimension mismatch after switching models | Update `embed_dim` accordingly, then `reindex --force` |
 
-## 交付核对清单
+## Delivery checklist
 
-### query 流程
-- [ ] `--question` 已传；`--doc-type`（如有）属于合法值
-- [ ] 命中 `needs_description=True` 文档时已执行懒填充（取正文 → 生成 ≤200 字 → update-description）
-- [ ] 懒填充后已执行 update-links 双向链接
-- [ ] Flutter 主题查询同时参考了 `references/`
+### query workflow
+- [ ] `--question` provided; `--doc-type` (if any) is a valid value
+- [ ] When hitting `needs_description=True` documents, lazy filling executed (fetch body → generate ≤200 chars → update-description)
+- [ ] After lazy filling, update-links bidirectional linking executed
+- [ ] Flutter topic queries also consulted `references/`
 
-### build / reindex 流程
-- [ ] `sidebars_dir` 来自 `config.json` 或 `--sidebars-dir`，未硬编码
-- [ ] 切换模型后已 `reindex --force` 全量重算
-- [ ] 维度 `embed_dim` 与新模型匹配
+### build / reindex workflow
+- [ ] `sidebars_dir` comes from `config.json` or `--sidebars-dir`, not hardcoded
+- [ ] After switching models, `reindex --force` full recomputation performed
+- [ ] `embed_dim` matches the new model
 
-### merge 流程
-- [ ] `--db-a` `--db-b` `--out` 三参数齐全
-- [ ] 旧库已自动备份为 `.bak.<timestamp>`
-- [ ] `needs_reindex_count > 0` 时已在新库跑 `reindex --force`
+### merge workflow
+- [ ] `--db-a` `--db-b` `--out` all three parameters present
+- [ ] Old databases automatically backed up as `.bak.<timestamp>`
+- [ ] When `needs_reindex_count > 0`, `reindex --force` run on new database

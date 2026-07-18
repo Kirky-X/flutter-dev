@@ -1,51 +1,51 @@
-# create 子命令 —— 创建 Flutter 工程
+# create subcommand — Create Flutter project
 
-经 `flutter create` 命令创建 Flutter 工程脚手架：项目名规则校验 + 平台选择 + 组织名 + pubspec 初始化 + 平台目录生成。
+Creates Flutter project scaffolding via the `flutter create` command: project name validation + platform selection + organization name + pubspec initialization + platform directory generation.
 
-> 🔴 **CHECKPOINT**：脚本依赖 `flutter` CLI。若环境无 `flutter`（`flutter --version` 不可用），立即停止并向用户说明无法执行；不要退化为"模型逐文件复制"模式。
+> 🔴 **CHECKPOINT**: This script depends on the `flutter` CLI. If `flutter` is unavailable in the environment (`flutter --version` fails), stop immediately and inform the user that execution is not possible; do not degrade to a "model copies files one by one" mode.
 
-## 必填参数
+## Required parameters
 
-执行前必须确认下表参数。缺值时经 `AskUserQuestion` 向用户询问，禁止 agent 凭空捏造：
+The following parameters must be confirmed before execution. When values are missing, ask the user via `AskUserQuestion`; the agent must not fabricate values:
 
-| 参数 | 必填 | 默认 | 示例 |
+| Parameter | Required | Default | Example |
 | ---- | ---- | ---- | ---- |
-| `projectPath` | 是 | — | `/Users/yellow/Desktop/projects` |
-| `projectName` | 是 | — | `hello_world` |
-| `orgName` | 否 | `com.example` | `com.yellow.app` |
-| `platforms` | 否 | 全平台 `ios,android,web,macos,windows,linux` | `ios,android` |
+| `projectPath` | Yes | — | `/Users/yellow/Desktop/projects` |
+| `projectName` | Yes | — | `hello_world` |
+| `orgName` | No | `com.example` | `com.yellow.app` |
+| `platforms` | No | All platforms `ios,android,web,macos,windows,linux` | `ios,android` |
 
-### projectName 规则
+### projectName rules
 
-`projectName` 必须匹配 `^[a-z][a-z0-9_]*$`（snake_case，全小写）。**大写 / 中文 / 非 ASCII 名一律拒绝**——`flutter create` 自身会报错。
+`projectName` must match `^[a-z][a-z0-9_]*$` (snake_case, all lowercase). **Uppercase / Chinese / non-ASCII names are all rejected** — `flutter create` itself will error.
 
-当用户提供大写或非 ASCII 名时，agent **MUST**：
+When user provides an uppercase or non-ASCII name, the agent **MUST**:
 
-1. 按含义给出 2-3 个 snake_case ASCII 候选（例：`购物车` → `shopping_cart` / `shop_cart` / `cart`；`天气预报` → `weather_forecast` / `weather` / `forecast`）。
-2. 经 `AskUserQuestion` 让用户选择，**禁止 agent 代为决定**。
-3. 永不将原始非 ASCII 名传给 `flutter create`。
+1. Provide 2-3 snake_case ASCII candidates based on meaning (e.g., `购物车` → `shopping_cart` / `shop_cart` / `cart`; `天气预报` → `weather_forecast` / `weather` / `forecast`).
+2. Use `AskUserQuestion` to let user select; **the agent must not decide on their behalf**.
+3. Never pass the original non-ASCII name to `flutter create`.
 
-### 目录冲突
+### Directory conflict
 
-若 `{projectPath}/{projectName}` 已存在且非空，`flutter create` 会报错或要求 `--project-name`。看到此错误时，经 `AskUserQuestion` 询问用户是否覆盖、改名或取消——**禁止 agent 自行删除目录或静默重跑**。
+If `{projectPath}/{projectName}` already exists and is non-empty, `flutter create` will error or require `--project-name`. When this error is seen, use `AskUserQuestion` to ask user whether to overwrite, rename, or cancel — **the agent must not delete the directory or silently re-run on their own**.
 
-### 平台选择
+### Platform selection
 
-- 默认全平台（Flutter 3.x 支持 ios / android / web / macos / windows / linux）。
-- 用户明确只要部分平台时，用 `--platforms=ios,android` 限定。
-- 不要凭模型猜平台；用户未指定就用默认全平台或 `--platforms=all`。
+- Default is all platforms (Flutter 3.x supports ios / android / web / macos / windows / linux).
+- When user explicitly wants only certain platforms, use `--platforms=ios,android` to limit.
+- Do not guess platforms based on model; if user has not specified, use default all platforms or `--platforms=all`.
 
-## 执行流程（5 步）
+## Execution flow (6 steps)
 
-### Step 1：确认环境
+### Step 1: Confirm environment
 
 ```bash
 flutter --version
 ```
 
-`flutter` 不在 PATH → 立即停止，告知用户安装 Flutter SDK 后重试。**不**退化为手动创建文件。
+`flutter` not in PATH → stop immediately, inform user to install Flutter SDK and retry. **Do not** degrade to manually creating files.
 
-### Step 2：运行 flutter create
+### Step 2: Run flutter create
 
 ```bash
 cd "{projectPath}" && \
@@ -56,75 +56,75 @@ flutter create \
   "{projectName}"
 ```
 
-用户未指定 `--org` / `--platforms` 时可省略对应参数，让 `flutter create` 用默认值。
+When user has not specified `--org` / `--platforms`, omit the corresponding parameters and let `flutter create` use defaults.
 
-执行约束：
+Execution constraints:
 
-- 不手动逐文件创建模板。
-- 递归复制、平台目录生成、pubspec 初始化全部由 `flutter create` 完成。
-- 脚本非零退出码 → 向用户报告错误并停止，不继续后续步骤。
+- Do not manually create template files one by one.
+- Recursive copy, platform directory generation, and pubspec initialization are all handled by `flutter create`.
+- Non-zero exit code from script → report error to user and stop, do not continue to subsequent steps.
 
-### Step 3：验证结果
+### Step 3: Verify results
 
-至少验证下列文件存在：
+Verify at least the following files exist:
 
 - `{projectPath}/{projectName}/pubspec.yaml`
 - `{projectPath}/{projectName}/lib/main.dart`
 
-文件缺失 → 视为创建失败，**不**进入后续编译或页面生成步骤。
+Missing files → treat as creation failure, **do not** proceed to subsequent compilation or page generation steps.
 
-### Step 4：切换会话工程上下文（必做）
+### Step 4: Switch session project context (mandatory)
 
-创建成功后调用 `switch_cwd`，目标路径为生成的工程根 `{projectPath}/{projectName}`。
+After successful creation, call `switch_cwd` with the target path set to the generated project root `{projectPath}/{projectName}`.
 
-理由：
+Rationale:
 
-- `flutter run` / `flutter test` 只有在当前会话上下文目录为真实工程根时才正确工作。
-- 本子命令在当前路径下生成完整工程；不切换上下文则后续 build/run 可能失败或落到错误目录。
+- `flutter run` / `flutter test` only work correctly when the current session context directory is the real project root.
+- This subcommand generates a complete project under the current path; without switching context, subsequent build/run may fail or operate in the wrong directory.
 
-`switch_cwd` 失败 → 报告上下文切换失败并停止，**不**进入特性实现 / `flutter run` / `flutter test`。
+`switch_cwd` failure → report context switch failure and stop, **do not** proceed to feature implementation / `flutter run` / `flutter test`.
 
-### Step 5：在生成工程内继续特性工作
+### Step 5: Continue feature work in the generated project
 
-仅当用户在创建请求之外还提了应用行为 / UI / 页面 / 业务需求时执行，且必须 `switch_cwd` 成功之后。
+Only execute when user has provided application behavior / UI / page / business requirements beyond the creation request, and only after `switch_cwd` succeeds.
 
-实现前：
+Before implementing:
 
-- 读 `{projectPath}/{projectName}/lib/main.dart` 确认入口。
-- 默认入口是 `main.dart` 的 `void main() => runApp(MyApp());`。
-- 修改 `MyApp` 或新增页面，确保所求特性从首屏可达。
+- Read `{projectPath}/{projectName}/lib/main.dart` to confirm the entry point.
+- Default entry point is `void main() => runApp(MyApp());` in `main.dart`.
+- Modify `MyApp` or add new pages, ensuring requested features are reachable from the first screen.
 
-特性实现完毕后运行 `flutter analyze` + `flutter run`；成功后再交付。
+After feature implementation, run `flutter analyze` + `flutter run`; deliver only after success.
 
-### Step 6：向用户回报
+### Step 6: Report to user
 
-所有请求的创建 / 实现 / 编译 / 运行 / 验证工作完成，或遇到阻塞失败立即回报。
+All requested creation / implementation / compilation / run / verification work is complete, or report immediately upon encountering a blocking failure.
 
-回报内容：
+Report contents:
 
-- 工程绝对路径
+- Absolute path of the project
 - projectName / orgName / platforms
-- `flutter create` 退出状态
-- `switch_cwd` 是否成功
-- 有特性工作时，analyze / run / 验证状态
+- `flutter create` exit status
+- Whether `switch_cwd` succeeded
+- When feature work was done: analyze / run / verification status
 
-## 边界情形
+## Edge cases
 
-| 情形 | 处理 |
+| Scenario | Handling |
 | ---- | ---- |
-| 环境 `flutter` 不可用 | 立即停止并告知用户；不退化为模型逐文件复制 |
-| `projectName` 含大写 / 非 ASCII | 经 `AskUserQuestion` 提 2-3 snake_case 候选，用户选后再调 `flutter create` |
-| 目标目录已存在非空 | `flutter create` 报错；经 `AskUserQuestion` 询问覆盖 / 改名 / 取消 |
-| `pubspec.yaml` / `lib/main.dart` 缺失 | 视为创建失败，停止后续步骤 |
-| `switch_cwd` 失败 | 停止，不进入特性实现 / run / test |
-| 用户指定不支持的 `--platforms` | `flutter create` 报错；提示合法平台列表 |
-| 用户已批准 Plan | 不要新建 plan、不要 `plan_enter` / `plan_write`、不要再次请求批准；以现有 plan 为准 |
+| `flutter` unavailable in environment | Stop immediately and inform user; do not degrade to model copying files one by one |
+| `projectName` contains uppercase / non-ASCII | Use `AskUserQuestion` to propose 2-3 snake_case candidates; call `flutter create` after user selects |
+| Target directory already exists and is non-empty | `flutter create` errors; use `AskUserQuestion` to ask user to overwrite / rename / cancel |
+| `pubspec.yaml` / `lib/main.dart` missing | Treat as creation failure, stop subsequent steps |
+| `switch_cwd` fails | Stop, do not proceed to feature implementation / run / test |
+| User specifies unsupported `--platforms` | `flutter create` errors; indicate valid platform list |
+| User has already approved Plan | Do not create new plan, do not `plan_enter` / `plan_write`, do not request approval again; proceed with existing plan |
 
-## 交付核对清单
+## Delivery checklist
 
-- [ ] 必填参数齐全；`projectName` 通过正则；非 ASCII 名已经用户从候选中选定
-- [ ] `flutter create` 以正确参数运行，退出码 0
-- [ ] `{projectPath}/{projectName}/pubspec.yaml` 与 `lib/main.dart` 存在
-- [ ] `switch_cwd` 成功切到工程根
-- [ ] （有特性工作时）`flutter analyze` 通过；`flutter run` 启动成功
-- [ ] 回报包含路径 / projectName / orgName / platforms / `switch_cwd` 状态 / analyze+run 状态
+- [ ] Required parameters complete; `projectName` passes regex; non-ASCII name selected by user from candidates
+- [ ] `flutter create` runs with correct parameters, exit code 0
+- [ ] `{projectPath}/{projectName}/pubspec.yaml` and `lib/main.dart` exist
+- [ ] `switch_cwd` successfully switches to project root
+- [ ] (When feature work exists) `flutter analyze` passes; `flutter run` starts successfully
+- [ ] Report includes path / projectName / orgName / platforms / `switch_cwd` status / analyze+run status
