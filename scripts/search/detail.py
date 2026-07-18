@@ -63,7 +63,7 @@ _META_DESC_RE = re.compile(
     r'<meta\s+name\s*=\s*["\']description["\']\s+content\s*=\s*["\']([^"\']*)["\']',
     re.IGNORECASE,
 )
-# main / article 内容容器（优先提取，避免导航/侧边栏噪声）
+# main / article content containers (prioritize extraction to avoid navigation/sidebar noise)
 _MAIN_CONTENT_RE = re.compile(
     r"<(?:main|article)\b[^>]*>(.*?)</(?:main|article)>",
     re.DOTALL | re.IGNORECASE,
@@ -71,19 +71,19 @@ _MAIN_CONTENT_RE = re.compile(
 
 
 def _strip_tags(text: str) -> str:
-    """移除 HTML 标签（用于清洗标题文本）。"""
+    """Remove HTML tags (for cleaning title text)."""
     return re.sub(r"<[^>]+>", "", text).strip()
 
 
 def extract_title(html: str) -> str:
-    """从 HTML 中提取页面标题。
+    """Extract page title from HTML.
 
-    优先级：
-    1. <title> 标签内容
-    2. 第一个 <h1> 标签内容
-    3. 空串
+    Priority:
+    1. <title> tag content
+    2. First <h1> tag content
+    3. Empty string
 
-    返回前会移除标签和多余空白。
+    Removes tags and extra whitespace before returning.
     """
     if not html:
         return ""
@@ -91,8 +91,8 @@ def extract_title(html: str) -> str:
     m = _TITLE_TAG_RE.search(html)
     if m:
         title = _strip_tags(m.group(1))
-        # Flutter 文档 <title> 常含 " | Flutter 中文文档" 后缀，截断
-        # 但保留原值若截断后为空
+        # Flutter docs <title> often contains " | Flutter" suffix, truncate
+        # but keep original if truncated result is empty
         for sep in [" | Flutter", " - Flutter", " | Flutter中文文档"]:
             if sep in title:
                 head = title.split(sep, 1)[0].strip()
@@ -109,9 +109,9 @@ def extract_title(html: str) -> str:
 
 
 def _extract_main_content(html: str) -> str:
-    """优先提取 <main>/<article> 内的内容，避免导航噪声。
+    """Prioritize extracting content within <main>/<article> to avoid navigation noise.
 
-    若无 main/article 容器，返回原始 HTML（让 html_to_markdown 全文处理）。
+    If no main/article container exists, return raw HTML (let html_to_markdown process entire content).
     """
     if not html:
         return ""
@@ -125,27 +125,27 @@ def detail(
     url: str,
     client: httpx.Client | None = None,
 ) -> dict:
-    """抓取 Flutter 文档页面内容并转换为 Markdown。
+    """Fetch Flutter documentation page content and convert to Markdown.
 
     Args:
-        url: 文档 URL（如 https://docs.flutter.cn/ui/widgets/layout）
-        client: 可选的 httpx.Client（复用连接池）；None 时新建
+        url: Documentation URL (e.g., https://docs.flutter.cn/ui/widgets/layout)
+        client: Optional httpx.Client (reuse connection pool); None to create new one
 
     Returns:
         {
             "title": str,
             "url": str,
-            "content": str,        # Markdown 格式内容
-            "description": str,    # <meta description>（可能为空）
-            "error": str | None,   # 失败时非空（Rule 12）
+            "content": str,        # Markdown formatted content
+            "description": str,    # <meta description> (may be empty)
+            "error": str | None,   # Non-empty on failure (Rule 12)
         }
 
-    error 字段非空时 content 可能为空——调用方应据 error 决定后续动作。
+    When error field is non-empty, content may be empty -- callers should decide next actions based on error.
     """
     if not url or not url.strip():
         raise ValueError("url must not be empty")
 
-    # SSRF 防护：限制只能抓取 Flutter 官方文档站点（防内网/元数据探测，如 169.254.169.254）
+    # SSRF protection: limit fetching to official Flutter documentation sites only (prevent intranet/metadata probing, e.g., 169.254.169.254)
     _allowed_hosts = {DOCS_HOST, API_HOST, PUB_HOST}
     _hostname = urlparse(url).hostname
     if _hostname not in _allowed_hosts:
@@ -178,16 +178,16 @@ def detail(
 
     title = extract_title(text)
 
-    # 提取 meta description（用于 description 回填，与 kb 模块配合）
+    # Extract meta description (for description backfill, works with kb module)
     desc_match = _META_DESC_RE.search(text)
     description = desc_match.group(1).strip() if desc_match else ""
 
-    # 优先提取 main/article 容器内容，减少导航噪声
+    # Prioritize extracting main/article container content to reduce navigation noise
     main_html = _extract_main_content(text)
     markdown = html_to_markdown(main_html)
 
     if not markdown.strip():
-        # 主内容容器为空时回退到全文转换
+        # Fallback to full content conversion when main content container is empty
         markdown = html_to_markdown(text)
 
     return {
