@@ -203,12 +203,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python3 -m scripts.search.detail",
         description=(
-            "flutter-dev search/detail：抓取 Flutter 文档页面内容，"
-            "转换为 Markdown 供 agent 检索或 description 回填。"
+            "flutter-dev search/detail: Fetch Flutter documentation page content, "
+            "convert to Markdown for agent retrieval or description backfill."
         ),
     )
     parser.add_argument(
-        "url", help="文档 URL（如 https://docs.flutter.cn/ui/widgets/layout）"
+        "url", help="Documentation URL (e.g., https://docs.flutter.cn/ui/widgets/layout)"
     )
     try:
         args = parser.parse_args(argv)
@@ -222,7 +222,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 2
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    # 失败时返回 1（Rule 12：错误显性化）
+    # Return 1 on failure (Rule 12: error visibility)
     if result["error"]:
         return 1
     return 0

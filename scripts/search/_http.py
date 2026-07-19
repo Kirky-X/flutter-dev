@@ -75,7 +75,7 @@ def endpoint_url(endpoint: str = "docs") -> str:
                   "pub" (pub.dev)
 
     Raises:
-        ValueError: 未知 endpoint 时（Rule 12：失败显性化）
+        ValueError: On unknown endpoint (Rule 12: error visibility)
     """
     if endpoint == "docs":
         return f"https://{DOCS_HOST}"

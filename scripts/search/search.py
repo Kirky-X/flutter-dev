@@ -1,15 +1,15 @@
-"""Flutter 文档本地 sidebars 关键词匹配搜索。
+"""Flutter documentation local sidebars keyword matching search.
 
-Flutter 没有统一的搜索 API（不同于 hap-dev 的 Huawei 端点），搜索策略：
-1. 本地 sidebars 匹配（主力）：在 sidebars/*.md 中按关键词匹配标题
-2. URL 内容抓取（辅助）：见 detail.py，从 docs.flutter.cn 等抓取页面内容
+Flutter lacks a unified search API (unlike hap-dev's Huawei endpoint), search strategy:
+1. Local sidebars matching (primary): match titles by keyword in sidebars/*.md
+2. URL content fetching (secondary): see detail.py, fetch page content from docs.flutter.cn etc.
 
-用法：
+Usage:
     python3 -m scripts.search.search <keyword> [--doc-type docs|api|ai-docs]
         [--top-k 10] [--sidebars-dir <path>]
 
-复用 scripts/kb/sidebar_parser.py 的 parse_all_sidebars 加载 sidebars
-（Rule 8：不重复实现已有功能）。
+Reuses scripts/kb/sidebar_parser.py's parse_all_sidebars to load sidebars
+(Rule 8: don't reimplement existing functionality).
 """
 
 from __future__ import annotations
@@ -40,15 +40,15 @@ _VALID_DOC_TYPES = set(SIDEBAR_FILE_MAP.values())  # {"docs", "api", "ai-docs"}
 
 
 def _score_title(keyword: str, title: str) -> int:
-    """关键词与标题的匹配分数（确定性打分，Rule 5）。
+    """Keyword-title matching score (deterministic scoring, Rule 5).
 
-    打分规则（高优先级在前）：
-    - 完全相等：100
-    - 标题以 keyword 开头：80
-    - 标题包含 keyword（子串）：60
-    - 标题包含 keyword 的所有 token（空格切分）：40
-    - 标题包含任一 token：20
-    - 不匹配：0
+    Scoring rules (high priority first):
+    - Exact match: 100
+    - Title starts with keyword: 80
+    - Title contains keyword (substring): 60
+    - Title contains all tokens of keyword (space-split): 40
+    - Title contains any token: 20
+    - No match: 0
     """
     if not keyword or not title:
         return 0
@@ -60,7 +60,7 @@ def _score_title(keyword: str, title: str) -> int:
         return 80
     if kw in ti:
         return 60
-    # 多 token 匹配
+    # Multi-token matching
     tokens = [t for t in kw.split() if t]
     if not tokens:
         return 0
