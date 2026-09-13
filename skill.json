@@ -2,7 +2,7 @@
   "name": "flutter-dev",
   "description": "Flutter/Dart application development skill. 5 subcommands: create (flutter create project creation) / fix (analyzer+runtime+layout fix) / test (flutter test verification) / kb (Qdrant knowledge base query/build/merge/reindex) / search (local sidebars matching+URL fetching). Covers full Flutter/Dart development lifecycle.",
   "license": "MIT",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "author": "Flutter-DEV Contributors",
   "repo": "",
   "homepage": "",
