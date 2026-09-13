@@ -1,6 +1,6 @@
 ---
 name: flutter-dev
-description: "Flutter/Dart application development skill. Triggers: Flutter/Dart/Widget/Material/Cupertino/create project/dart analyze/RenderFlex/NoSuchMethodError/flutter test/doc search/knowledge base"
+description: "Flutter/Dart application development skill. Triggers: Flutter/Dart/Widget/Material/Cupertino/create project/dart analyze/RenderFlex/NoSuchMethodError/flutter test/doc search/knowledge base/Flutter 开发/Dart 报错/Widget 布局/pub 依赖/Flutter 布局溢出/Flutter 测试. Do NOT trigger for: 鸿蒙/HarmonyOS/ArkTS (→ use hap-dev skill instead)."
 license: MIT
 ---
 
@@ -53,39 +53,54 @@ flowchart TD
 
 After entering a subcommand, follow its workflow documentation. Checkpoints, edge cases, and delivery checklists are all within each subcommand's document — **this router does not contain the main workflow**.
 
+## First Run (Environment Setup)
+
+```bash
+cd {SKILL_DIR}                     # skill 根目录；下文所有 python3 -m 命令均以此为 cwd
+pip install -r requirements.txt   # qdrant-client / rank-bm25 / httpx / sentence-transformers / modelscope 等
+```
+
+- `python3 -m scripts.*` 依赖 cwd=skill 根目录来定位 `scripts` 包；在其他目录执行会报 `No module named scripts`。
+- `config.json` 含 API key、不入仓库：缺失时脚本回退内置默认值（stderr 提示）；需要自定义（云端模型/key）时执行 `cp config.example.json config.json` 后编辑。
+
 ## Quick Command Reference
+
+所有命令均假设已执行 `cd {SKILL_DIR}`；逐条复制时保留 `cd {SKILL_DIR} && ` 前缀。flag 与各脚本 `--help` 输出一一对应。
 
 ```bash
 # create
-python3 -m scripts.create.create_project --name <project_name> --out <output_dir> [--org com.example] [--platforms android,ios,web]
+cd {SKILL_DIR} && python3 -m scripts.create.create_project --name <project_name> --out <output_dir> \
+    [--org com.example] [--platforms android,ios,web] [--force]   # --force: 跳过"输出目录非空"检查
 
-# fix (three tracks: analyzer→run_analyzer.py | runtime→parse_stack_trace.py | layout→diagnose_layout.py)
-python3 -m scripts.fix.run_analyzer --project <dir>            # dart analyze JSON parsing
-python3 -m scripts.fix.parse_stack_trace --trace "<stack trace string>"
-python3 -m scripts.fix.diagnose_layout --log "<flutter layout error log>"
+# fix（三条轨道：analyzer→run_analyzer.py | runtime→parse_stack_trace.py | layout→diagnose_layout.py）
+cd {SKILL_DIR} && python3 -m scripts.fix.run_analyzer <project_dir>    # dart analyze JSON 解析（工程路径为位置参数）
+cd {SKILL_DIR} && python3 -m scripts.fix.parse_stack_trace --log-text "<Dart stack trace 文本>"   # 或 --log-file <日志路径>
+cd {SKILL_DIR} && python3 -m scripts.fix.diagnose_layout --log-text "<flutter layout 错误日志>"    # 或 --log-file <日志路径>
 
 # test
-python3 -m scripts.test.cli check                               # Detect Flutter/Dart SDK + platform
-python3 -m scripts.test.cli run --unit --path test/             # flutter test (unit/widget)
-python3 -m scripts.test.cli run --integration --path integration_test/  # flutter integration_test
+cd {SKILL_DIR} && python3 -m scripts.test.cli check                          # 检测 Flutter/Dart SDK + 平台
+cd {SKILL_DIR} && python3 -m scripts.test.cli run --project-path <project_dir>              # flutter test（unit/widget）
+cd {SKILL_DIR} && python3 -m scripts.test.cli run --project-path <project_dir> --integration # flutter test integration_test/
+cd {SKILL_DIR} && python3 -m scripts.test.cli run --project-path <project_dir> --test-file test/widget_test.dart  # 单文件
 
-# kb (9 sub-actions)
-python3 -m scripts.kb.cli query --question "<keyword>" [--top-k 5]
-python3 -m scripts.kb.cli build
-python3 -m scripts.kb.cli merge --other <other.qdrant>
-python3 -m scripts.kb.cli reindex --force
-python3 -m scripts.kb.cli update-description <id> "<desc>"
-python3 -m scripts.kb.cli update-links --id <id> --content "<markdown>"
-python3 -m scripts.kb.cli link-auto [--threshold 0.9] [--max-per-doc 10]   # auto bidirectional links with cosine >0.9
-python3 -m scripts.kb.cli migrate-embed-model [--model <name>]              # backfill embed_model
-python3 -m scripts.kb.cli config
+# kb（子动作：query/build/merge/reindex/update-description/update-links/link-auto/migrate-embed-model/
+#     config/fetch-content/update-content/fetch-and-update/migrate-context/refresh-expired）
+cd {SKILL_DIR} && python3 -m scripts.kb.cli query --question "<关键词>" [--top-k 5] [--doc-type docs|api|ai-docs] [--rerank]
+cd {SKILL_DIR} && python3 -m scripts.kb.cli build [--sidebars-dir <dir>]
+cd {SKILL_DIR} && python3 -m scripts.kb.cli merge --db-a <db_a.qdrant> --db-b <db_b.qdrant> --out <merged.qdrant>
+cd {SKILL_DIR} && python3 -m scripts.kb.cli reindex --force
+cd {SKILL_DIR} && python3 -m scripts.kb.cli update-description --id <doc_id> --description "<新描述>"
+cd {SKILL_DIR} && python3 -m scripts.kb.cli update-links --id <doc_id> --content "<markdown 或文件路径>"
+cd {SKILL_DIR} && python3 -m scripts.kb.cli link-auto [--threshold 0.9] [--max-per-doc 10]   # cosine >0.9 自动双向链接
+cd {SKILL_DIR} && python3 -m scripts.kb.cli migrate-embed-model [--model <name>]             # 回填 embed_model
+cd {SKILL_DIR} && python3 -m scripts.kb.cli config
 
 # search
-python3 -m scripts.search.search "<keyword>" [--doc-type docs|api|ai-docs] [--top-k 10]
-python3 -m scripts.search.detail <url>
+cd {SKILL_DIR} && python3 -m scripts.search.search "<keyword>" [--doc-type docs|api|ai-docs] [--top-k 10]
+cd {SKILL_DIR} && python3 -m scripts.search.detail <url>
 
 # One-click rebuild pre-built database (required after switching embed_model)
-python3 scripts/kb/build_db.py
+cd {SKILL_DIR} && python3 scripts/kb/build_db.py
 ```
 
 ## General Rules
@@ -104,7 +119,7 @@ The test subcommand detects Flutter SDK / Dart SDK / platform via `python3 -m sc
 ### config.json Driven
 
 `config.json` stores embed_model/rerank_model/db_path/endpoints.
-- File missing → agent asks via AskUserQuestion; if default is chosen, generates default config.json and uses pre-built database; if non-default, downloads model + re-indexes.
+- File missing → scripts fall back to built-in defaults (stderr note suggests `cp config.example.json config.json`); agent asks via AskUserQuestion; if default is chosen, uses pre-built database; if non-default, downloads model + re-indexes.
 - embed_model is default and data/flutter.qdrant exists → uses pre-built database directly, no vector recalculation.
 - embed_model is non-default → downloads model + full re-index.
 
@@ -112,7 +127,7 @@ The test subcommand detects Flutter SDK / Dart SDK / platform via `python3 -m sc
 
 ### Lazy Description Filling
 
-When kb query hits a document with description=="no description", the agent calls `search detail <url>` to fetch the body text → generates a description ≤200 characters → calls `kb update-description <id> "<desc>"` to backfill + recalculate vectors.
+When kb query hits a document with description=="no description", the agent calls `search detail <url>` to fetch the body text → generates a description ≤200 characters → calls `kb update-description --id <id> --description "<desc>"` to backfill + recalculate vectors.
 
 > 🔴 **CHECKPOINT**: After `kb merge` completes, the new database needs `reindex --force` to refresh vectors for documents with changed descriptions. **Do not delete old database backups** until query correctness on the new database is verified. Backup files `.bak.<timestamp>` require explicit user confirmation before deletion.
 
@@ -136,8 +151,8 @@ flowchart LR
 
 | Trigger | First-line Fix | Fallback if Still Failing |
 | ------- | -------------- | ------------------------- |
-| config.json missing | Agent asks via AskUserQuestion; if default chosen, generates default config | User rejects config → stop, prompt manual edit of config.json |
-| Pre-built database doesn't exist | Call `kb build` to rebuild from sidebars/ | If sidebars/ missing, prompt user to copy from temp/ |
+| config.json missing | Scripts fall back to built-in defaults + stderr note; agent asks via AskUserQuestion | User rejects config → stop, prompt `cp config.example.json config.json` and manual edit |
+| Pre-built database doesn't exist | Run `kb build` to rebuild from `sidebars/` (three sidebar markdowns: flutter-docs.md / flutter-api.md / flutter-ai-docs.md, tracked in the repo) | If sidebars/ missing or empty, ask user to provide the three sidebar markdown files into `sidebars/`, or use `search` online |
 | kb query returns no results | Try different keywords or call `search` online | If search also returns nothing, suggest visiting docs.flutter.cn directly |
 | kb query reports dimension mismatch | embed_dim changed without rebuild → run `python3 scripts/kb/build_db.py` | Still failing → check config.json embed_dim vs actual model dimension |
 | search URL fetch fails (HTTP 5xx/timeout) | Explicit error (non-zero exit code + errors field), no silent failure | Switch to another endpoint; if all fail, suggest visiting official site |
@@ -145,7 +160,7 @@ flowchart LR
 | ModelScope model download fails (404/timeout) | Retry + check model name spelling (e.g., `+` suffix is invalid) | Prompt manual download or switch to `openai://` cloud model |
 | Flutter SDK not installed (test check reports `Flutter SDK: not detected`) | Prompt installation at `flutter.dev/docs/get-started/install` | Re-run `check` after installation to verify |
 | fix symptom ambiguity | Fallback in order: analyzer → runtime → layout → grammar | Ask user for more specific symptoms (error code/stack trace/screenshot) |
-| sidebars/ parses 0 documents | Check if sidebars/ directory is non-empty + markdown format is valid | Prompt user to re-copy from temp/flutter-*-sidebar.md |
+| sidebars/ parses 0 documents | Check if sidebars/ directory is non-empty + markdown format is valid (expect flutter-docs.md / flutter-api.md / flutter-ai-docs.md) | Ask user to re-provide the three sidebar markdown files into `sidebars/`; do not guess paths |
 | kb query reports `embed_model mismatch` | DB model differs from current config.json `embed_model` → choose: ①revert config.json to DB model; ②run `python3 scripts/kb/build_db.py` with new model for full rebuild | Different models with same dimension are incompatible; only `build_db.py` can rebuild from sidebars |
 | kb merge reports `embed_model mismatch` | Two DBs used different embed_models → reject merge. Reindex both to same model first, then merge | Contaminated DBs need `build_db.py` rebuild from sidebars |
 | DB docs missing `embed_model` field (legacy) | Run `python3 -m scripts.kb.cli migrate-embed-model` to backfill config.json's embed_model | Already contaminated by multiple models → only `build_db.py` can rebuild |

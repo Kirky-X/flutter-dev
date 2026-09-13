@@ -2,6 +2,14 @@
 
 Routes user symptoms to one of three fix tracks: analyzer errors (analyzer-errors) / runtime crashes (runtime-errors) / layout issues (layout-errors). **First route by symptom table to select a track, then enter the track to execute**.
 
+> **确定性检查优先走 scripts/**：本节的裸 `flutter analyze` / `flutter run` 步骤是手动兜底。三条轨道各有确定性脚本入口（cwd=skill 根目录）：
+>
+> | 轨道 | 脚本入口 | 手动兜底 |
+> | ---- | ---- | ---- |
+> | analyzer | `python3 -m scripts.fix.run_analyzer <project_dir>`（工程路径为位置参数） | `flutter analyze` |
+> | runtime | `python3 -m scripts.fix.parse_stack_trace --log-text "<...>"` 或 `--log-file <日志路径>` | 手工读 stack trace |
+> | layout | `python3 -m scripts.fix.diagnose_layout --log-text "<...>"` 或 `--log-file <日志路径>` | 手工读 layout 断言 |
+
 > 🔴 **CHECKPOINT**: When symptoms are ambiguous, fall back in the order of **analyzer → runtime → layout**. Do not pick a track based on model intuition.
 
 ## Symptom routing table

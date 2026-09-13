@@ -29,11 +29,10 @@ desktop.ini
 *.tmp
 *.bak
 *.bak.*
-# Qdrant local DB backups (keep the main pre-built DB, exclude backups)
+# Qdrant local DB：运行时派生品（含可再生的 storage.sqlite），不入仓库；
+# 数据源 sidebars/ 与元信息 data/*.qdrant.meta.json 正常入库
+data/*.qdrant/
 data/*.qdrant.bak*/
-!data/flutter.qdrant/
-# Qdrant runtime lock file (transient — regenerated on each open)
-data/flutter.qdrant/.lock
 # ModelScope cache
 .modelscope/
 # Test artifacts
@@ -42,11 +41,10 @@ htmlcov/
 # OpenSpec 工作流产物（设计文档，不入仓库）
 openspec/
 specmark/
-sidebars/
-# 测试代码（开发期使用，不入仓库）
-tests/
-**/tests/
-**/test/
+# 含 API key 的本地配置（模板见 config.example.json）
+config.json
+# 仅忽略仓库根目录的开发期测试目录；scripts/test、scripts/kb/tests 是源码，必须入库
+/tests/
 # Darwin skill 优化产物（开发期使用，不入仓库）
 results.tsv
 test-prompts.json

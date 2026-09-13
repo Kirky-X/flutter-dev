@@ -2,7 +2,7 @@
 
 用法：
     python3 -m scripts.create.create_project --name <name> --out <out_dir>
-        [--org <org>] [--platforms android,ios,...]
+        [--org <org>] [--platforms android,ios,...] [--force]
 
 设计决策：
 - 直接调用 Flutter 官方 `flutter create` CLI（成熟工具，无需自定义模板）
@@ -18,6 +18,7 @@ import json
 import re
 import subprocess
 import sys
+from pathlib import Path
 from typing import Optional
 
 __all__ = ["create_project", "main"]
@@ -37,6 +38,7 @@ def create_project(
     out_dir: str,
     platforms: Optional[list[str]] = None,
     org: Optional[str] = None,
+    force: bool = False,
 ) -> dict:
     """调用 `flutter create` 创建工程。
 
@@ -45,12 +47,13 @@ def create_project(
         out_dir: 输出目录路径
         platforms: 平台列表（子集 of PLATFORMS）；None 表示全平台
         org: 组织名（如 com.example）；None 时 flutter 用默认 com.example
+        force: 输出目录已存在且非空时是否强制继续
 
     Returns:
         创建结果 dict：{"created", "out_dir", "platforms", "org"}
 
     Raises:
-        ValueError: 项目名/组织名/平台非法时
+        ValueError: 项目名/组织名/平台非法，或输出目录已存在且非空且未 force 时
         RuntimeError: flutter create 非零退出码时
     """
     if not re.match(APP_NAME_PATTERN, name):
@@ -67,6 +70,15 @@ def create_project(
             raise ValueError(
                 f"未知平台: {sorted(invalid)}; 可选: {sorted(PLATFORMS)}"
             )
+
+    # 写前检查：输出目录已存在且非空 → 显性报错，防止覆盖用户已有文件。
+    # --force 显式跳过（Rule 12：失败显性化，不静默覆盖）。
+    out_path = Path(out_dir)
+    if out_path.is_dir() and any(out_path.iterdir()) and not force:
+        raise ValueError(
+            f"输出目录已存在且非空: {out_dir}；"
+            f"如确认要在其中生成工程请加 --force"
+        )
 
     cmd = ["flutter", "create", "--project-name", name]
     if org:
@@ -118,6 +130,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="平台列表（逗号分隔，如 android,ios,web）；省略表示全平台",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="输出目录已存在且非空时强制继续（默认报错退出）",
+    )
     return parser
 
 
@@ -139,6 +156,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             out_dir=args.out,
             platforms=platforms,
             org=args.org,
+            force=args.force,
         )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)

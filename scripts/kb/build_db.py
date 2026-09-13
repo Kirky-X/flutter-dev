@@ -89,6 +89,12 @@ def _load_cfg(config_arg: str | None) -> dict[str, Any]:
         return cfg
     cfg = ensure_config()
     if cfg is None:
+        print(
+            "note: config.json not found in cwd; using built-in defaults. "
+            "To customize (embed/rerank API keys etc.), run: "
+            "cp config.example.json config.json",
+            file=sys.stderr,
+        )
         return dict(DEFAULT_CONFIG)
     return cfg
 

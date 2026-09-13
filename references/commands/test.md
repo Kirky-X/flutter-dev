@@ -2,15 +2,24 @@
 
 Runs unit / widget tests via `flutter test`, performs end-to-end verification via `flutter run` + integration tests (`integration_test`). **Test passing is a necessary but not sufficient condition** — weak tests must be identified.
 
-> 🔴 **CHECKPOINT**: This subcommand **does not** automatically install the Flutter SDK. When the agent detects `flutter` is unavailable, it only prompts the user to install it, never installs on their behalf.
+> **确定性检查优先走 scripts/**：环境检测与测试执行优先用 `scripts.test.cli`（cwd=skill 根目录），本节的裸 `flutter test` 步骤是手动兜底。
 
 ## Three actions overview
 
-| Action | Command | Purpose |
+`scripts.test.cli` 真实子动作（对齐 `python3 -m scripts.test.cli --help`）：
+
+| Action | Script command | Purpose |
 | ---- | ---- | ---- |
-| `analyze` | `flutter analyze [lib/]` | Dart static analysis (syntax / types / lint) |
-| `test` | `flutter test [test/] [--name pattern]` | Run unit / widget tests |
-| `integration` | `flutter test integration_test/` | Run integration_test end-to-end tests |
+| `check` | `python3 -m scripts.test.cli check` | 检测 Flutter SDK / Dart SDK / 平台 |
+| `config` | `python3 -m scripts.test.cli config --project-path <dir> [--coverage] [--integration-test-dir <dir>]` | 生成 flutter test 测试配置 JSON |
+| `run`（unit/widget） | `python3 -m scripts.test.cli run --project-path <dir>` | Run unit / widget tests |
+| `run`（integration） | `python3 -m scripts.test.cli run --project-path <dir> --integration` | Run integration_test end-to-end tests |
+| `run`（单文件） | `python3 -m scripts.test.cli run --project-path <dir> --test-file test/foo_test.dart` | 指定单个测试文件 |
+| `run`（覆盖率） | `python3 -m scripts.test.cli run --project-path <dir> --coverage` | 启用 --coverage |
+
+`run` 另支持 `--extra-args`（透传 flutter test 参数，如 `--name MyTest`）与 `--dry-run`（仅输出计划 JSON 不执行）。
+
+> 🔴 **CHECKPOINT**: This subcommand **does not** automatically install the Flutter SDK. When the agent detects `flutter` is unavailable, it only prompts the user to install it, never installs on their behalf.
 
 ## Test types
 
