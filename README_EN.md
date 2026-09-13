@@ -42,6 +42,8 @@ bash scripts/sync-skills.sh flutter-dev
 
 # 首跑前置：kb / search / test 的 Python 依赖
 pip install -r requirements.txt   # qdrant-client / rank-bm25 / httpx / sentence-transformers / modelscope
+# Option 3: Remote install (GitHub repo)
+npx skills add Kirky-X/flutter-dev --agent claude-code -y
 ```
 
 create / fix / test additionally require the [Flutter SDK](https://docs.flutter.dev/get-started/install) (Dart included); after installation, verify with `python3 -m scripts.test.cli check`. After changing `embed_model` / `embed_dim`, a full rebuild with `python3 scripts/kb/build_db.py` is mandatory, otherwise a dimension-mismatch error is raised.

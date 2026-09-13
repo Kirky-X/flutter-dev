@@ -42,6 +42,8 @@ bash scripts/sync-skills.sh flutter-dev
 
 # 首跑前置：kb / search / test 的 Python 依赖
 pip install -r requirements.txt   # qdrant-client / rank-bm25 / httpx / sentence-transformers / modelscope
+# 方式三：远程安装（GitHub 仓库）
+npx skills add Kirky-X/flutter-dev --agent claude-code -y
 ```
 
 create / fix / test 需另装 [Flutter SDK](https://docs.flutter.dev/get-started/install)（含 Dart），装后用 `python3 -m scripts.test.cli check` 验证。修改 `embed_model` / `embed_dim` 后必须 `python3 scripts/kb/build_db.py` 全量重建，否则维度不匹配报错。
