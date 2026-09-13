@@ -1,4 +1,4 @@
-# FLUTTER-DEV — Flutter/Dart 应用开发技能
+# flutter-dev — Flutter/Dart 应用开发技能
 
 > 面向 AI agent 的 Flutter/Dart 应用开发技能：create（建工程）→ fix（修报错）→ test（跑测试）覆盖开发生命周期，kb（本地 Qdrant 知识库）与 search（在线文档搜索）提供知识支撑。跨 Linux / Windows / macOS，无 MCP 依赖。
 

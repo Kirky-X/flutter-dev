@@ -1,4 +1,4 @@
-# FLUTTER-DEV — Flutter/Dart Application Development Skill
+# flutter-dev — Flutter/Dart Application Development Skill
 
 > A Flutter/Dart application development skill for AI agents: create (scaffold a project) → fix (resolve errors) → test (run tests) covers the development lifecycle, with kb (local Qdrant knowledge base) and search (online documentation search) providing knowledge support. Cross-platform across Linux / Windows / macOS, no MCP dependency.
 
