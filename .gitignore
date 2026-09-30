@@ -43,8 +43,6 @@ openspec/
 specmark/
 # 含 API key 的本地配置（模板见 config.example.json）
 config.json
-# 仅忽略仓库根目录的开发期测试目录；scripts/test、scripts/kb/tests 是源码，必须入库
-/tests/
 # Darwin skill 优化产物（开发期使用，不入仓库）
 results.tsv
 test-prompts.json
