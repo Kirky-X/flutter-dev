@@ -16,11 +16,11 @@ Routes user symptoms to one of three fix tracks: analyzer errors (analyzer-error
 
 | User symptom | Route track | Entry |
 | ---- | ---- | ---- |
-| Has `flutter analyze` / compilation failure logs or type errors, **no** runtime crash | analyzer | [`references/error-fixes/analyzer-errors.md`](../error-fixes/analyzer-errors.md) |
-| Has runtime crash stack / exception / crash-to-desktop, **or** build succeeds but crashes on run | runtime | [`references/error-fixes/runtime-errors.md`](../error-fixes/runtime-errors.md) + [`null-safety-errors.md`](../error-fixes/null-safety-errors.md) |
-| Has RenderFlex overflow / yellow-black stripes / layout assertions / missing ancestor | layout | [`references/error-fixes/layout-errors.md`](../error-fixes/layout-errors.md) |
+| Has `flutter analyze` / compilation failure logs or type errors, **no** runtime crash | analyzer | [`../error-fixes/analyzer-errors.md`](../error-fixes/analyzer-errors.md) |
+| Has runtime crash stack / exception / crash-to-desktop, **or** build succeeds but crashes on run | runtime | [`../error-fixes/runtime-errors.md`](../error-fixes/runtime-errors.md) + [`null-safety-errors.md`](../error-fixes/null-safety-errors.md) |
+| Has RenderFlex overflow / yellow-black stripes / layout assertions / missing ancestor | layout | [`../error-fixes/layout-errors.md`](../error-fixes/layout-errors.md) |
 | Pure syntax inquiry / TS→Dart differences / "is certain syntax allowed" | grammar | [`references/grammar/`](../grammar/) |
-| `flutter build` fails (Gradle / Xcode / CocoaPods / pub) | build | [`references/error-fixes/build-errors.md`](../error-fixes/build-errors.md) |
+| `flutter build` fails (Gradle / Xcode / CocoaPods / pub) | build | [`../error-fixes/build-errors.md`](../error-fixes/build-errors.md) |
 | Symptom unclear | fallback: analyzer → runtime → layout | See "Ambiguous symptom handling" below |
 
 ### Ambiguous symptom handling

@@ -153,12 +153,13 @@ When querying Flutter issues (widget / layout / state management / Dart code), *
 
 | File | Purpose |
 | ---- | ---- |
-| `references/flutter-ui/widget-cookbook.md` | Widget cookbook |
-| `references/flutter-ui/api-guardrails.md` | API usage guardrails |
-| `references/flutter-ui/common-mistakes.md` | Common mistakes |
-| `references/flutter-ui/ui-quality-checklist.md` | UI quality checklist |
-| `references/grammar/dart-syntax.md` | Dart syntax |
-| `references/dev-rules.md` | Development rules |
+| `../flutter-ui/widget-cookbook.md` | Widget cookbook |
+| `../flutter-ui/api-guardrails.md` | API usage guardrails |
+| `../flutter-ui/common-mistakes.md` | Common mistakes |
+| `../flutter-ui/ui-quality-checklist.md` | UI quality checklist |
+| `../grammar/dart-syntax.md` | Dart syntax |
+| `../grammar/ts-to-dart.md` | TypeScript to Dart syntax differences |
+| `../dev-rules.md` | Development rules |
 
 After `kb query` hits Flutter topic documents, the agent should **also** consult the above references to avoid giving suggestions that conflict with project style.
 
