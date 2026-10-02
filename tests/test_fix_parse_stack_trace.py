@@ -138,5 +138,47 @@ class TestCli(unittest.TestCase):
         self.assertEqual(code, 2)
 
 
+CONSOLE_SAMPLE = (
+    "E/Flutter ( 1234): Unhandled exception:\n"
+    "E/Flutter ( 1234): NoSuchMethodError: The method 'foo' was called on null.\n"
+    "E/Flutter ( 1234): #0      HomePage.build (package:myapp/pages/home.dart:42:13)\n"
+    "E/Flutter ( 1234): #1      StatefulElement.build (package:flutter/src/widgets/framework.dart:5224:46)\n"
+)
+
+BARE_PREFIX_SAMPLE = (
+    "E NoSuchMethodError: The method 'foo' was called on null.\n"
+    "E #0      HomePage.build (package:myapp/pages/home.dart:42:13)\n"
+)
+
+
+class TestConsolePrefix(unittest.TestCase):
+    """flutter run / flutter test 控制台日志行前缀（`E/Flutter ( pid): `、`E `）。"""
+
+    def test_logcat_style_prefix_detected(self):
+        result = parse_stack_trace(CONSOLE_SAMPLE)
+        self.assertEqual(result["status"], "detected")
+        self.assertEqual(result["error_type"], "NoSuchMethodError")
+        self.assertEqual(
+            result["error_message"], "The method 'foo' was called on null."
+        )
+        top = result["top_frame"]
+        self.assertEqual(top["function"], "HomePage.build")
+        self.assertEqual(top["file"], "package:myapp/pages/home.dart")
+        self.assertEqual(top["line"], 42)
+        self.assertEqual(top["column"], 13)
+
+    def test_bare_level_prefix_detected(self):
+        result = parse_stack_trace(BARE_PREFIX_SAMPLE)
+        self.assertEqual(result["status"], "detected")
+        self.assertEqual(result["error_type"], "NoSuchMethodError")
+        self.assertEqual(result["top_frame"]["line"], 42)
+
+    def test_standard_format_unaffected(self):
+        result = parse_stack_trace(SAMPLE)
+        self.assertEqual(result["status"], "detected")
+        self.assertEqual(result["error_type"], "NoSuchMethodError")
+        self.assertEqual(len(result["stack"]), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

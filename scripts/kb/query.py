@@ -20,7 +20,7 @@ from typing import Any, Optional
 from .sidebar_parser import NO_DESCRIPTION
 
 # B8: hybrid tokenizer — English words as whole tokens, Chinese as chars.
-# Original char-level `[c for c in text]` split 'ArkTS' into ['A','r','k','T','S'],
+# Original char-level `[c for c in text]` split 'Stack' into ['S','t','a','c','k'],
 # destroying BM25 discrimination for English terms. New approach:
 #   1. split on whitespace + punctuation (preserving ASCII word chars + digits + hyphen)
 #   2. for each chunk, if it's ASCII (English/digits) keep as one token;
@@ -28,7 +28,7 @@ from .sidebar_parser import NO_DESCRIPTION
 #   3. drop empty strings
 #
 # ASCII word char class: [A-Za-z0-9_-] (underscore + hyphen join compound tokens
-# like 'errorcode-123' or 'UIAbility_2'). Everything else is a separator.
+# like 'errorcode-123' or 'MediaQuery_2'). Everything else is a separator.
 _ASCII_WORD_RE = re.compile(r"[A-Za-z0-9_-]+")
 
 
@@ -58,8 +58,8 @@ def _tokenize(text: str) -> list[str]:
     CJK characters → individual char tokens.
     All other chars (whitespace, punctuation) → separators, dropped.
 
-    This preserves BM25 discrimination for English terms (ArkTS, UIAbility,
-    harmonyos, errorcode-123) while keeping Chinese char-level granularity
+    This preserves BM25 discrimination for English terms (MediaQuery,
+    StatefulWidget, RenderFlex) while keeping Chinese char-level granularity
     (no jieba dependency, per spec).
     """
     if not text:

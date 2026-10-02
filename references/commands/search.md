@@ -2,14 +2,14 @@
 
 Local sidebars matching + URL content fetching. Prioritizes matching local sidebars (fast, offline), and optionally fetches URL body (HTML→Markdown cleanup) upon hit.
 
-> 🔴 **Endpoint source**: Flutter documentation main domain `docs.flutter.dev` / `api.flutter.dev`; sidebars list read from `sidebars/` directory.
+> 🔴 **Endpoint source**: Flutter documentation main domain `docs.flutter.cn` / `api.flutter-io.cn` (loaded from `config.json` `endpoints`, SSRF whitelist enforced by `scripts/search/detail.py`); sidebars list read from `sidebars/` directory.
 
 ## Two-phase search
 
 | Phase | Purpose | Data source |
 | ---- | ---- | ---- |
 | 1. Local sidebars matching | Quickly locate document URL / title | `sidebars/*.md` (already indexed into kb) |
-| 2. URL content fetching | Retrieve full body content | `docs.flutter.dev` / `api.flutter.dev` / `dart.dev` |
+| 2. URL content fetching | Retrieve full body content | `docs.flutter.cn` / `api.flutter-io.cn` / `pub.dev` |
 
 Prioritize phase 1 (kb already indexed); fetch URL via phase 2 when body content is needed.
 
@@ -20,7 +20,7 @@ Prioritize phase 1 (kb already indexed); fetch URL via phase 2 when body content
 | Flutter tutorials / guides / steps | `flutter-docs.md` | How-to guides, cookbook, tutorials |
 | Flutter API / Widget / class / method | `flutter-api.md` | API reference |
 | Flutter AI-assisted development | `flutter-ai-docs.md` | AI toolchain documentation |
-| Dart language / SDK | (query kb full library) | `dart.dev` also directly accessible |
+| Dart language / SDK | (query kb full library) | Dart/Flutter API pages on the mirrors are directly reachable |
 | Uncertain / comprehensive | Do not specify `--doc-type` | Full library search |
 
 ## Command format
@@ -30,7 +30,7 @@ Prioritize phase 1 (kb already indexed); fetch URL via phase 2 when body content
 ```bash
 python3 -m scripts.kb.cli query \
   --question "<keyword>" \
-  [--doc-type flutter-docs|flutter-api|flutter-ai-docs] \
+  [--doc-type docs|api|ai-docs] \
   [--top-k 5]
 ```
 
@@ -39,17 +39,16 @@ See [`kb.md`](kb.md) for details.
 ### URL content fetching
 
 ```bash
-python3 scripts/search/detail.py <object_id> <doc_type>
+python3 -m scripts.search.detail <url>
 ```
 
 Parameters:
 
 | Parameter | Required | Description |
 | ---- | ---- | ---- |
-| `object_id` | Yes | Last segment of document URL or `id` from kb hit |
-| `doc_type` | Yes | One of the sidebar types |
+| `url` | Yes | Full document URL from kb/search hit results (host must be in the `endpoints` whitelist) |
 
-> 🔴 **detail is the body fetching channel for the search subcommand**: `detail.py` handles HTML→Markdown cleanup and anchor extraction; kb's description/links backfill all go through this channel.
+> 🔴 **detail is the body fetching channel for the search subcommand**: `detail.py` handles HTML→Markdown cleanup; kb's description/links backfill all go through this channel.
 
 ## Output format
 
@@ -62,25 +61,23 @@ JSON array, each item contains `id` / `title` / `url` / `score` / `doc_type` / `
 ```json
 {
   "title": "Document title",
-  "object_id": "xxx",
-  "doc_type": "flutter-docs",
-  "anchors": [{"id": "anchor_id", "title": "Section title"}],
-  "content": "Markdown body preserving headings/code blocks/lists/links/tables/blockquotes"
+  "url": "https://docs.flutter.cn/ui/widgets/layout",
+  "content": "Markdown body preserving headings/code blocks/lists/links/tables/blockquotes",
+  "description": "<meta description> (may be empty)",
+  "error": null
 }
 ```
 
-`content` is the complete Markdown body, ready to present directly to the user.
+`content` is the complete Markdown body. Site navigation noise (breadcrumbs, icon ligatures like `chevron_right`) may remain — skim/filter it before presenting to the user. `error` is non-empty on failure (with `content: ""`).
 
-## Anchor navigation
+## Long content handling
 
-`detail` output includes an `anchors` field (`[{id, title}]`).
-
-When `detail` returns `content` > 3000 characters, **first** display the `anchors` directory for the user to select a section, then extract the relevant paragraphs by the chosen anchor. **Do not** automatically dump all content.
+`detail` output is a single `content` string (no per-section anchor list). For very long pages:
 
 | Scenario | Handling |
 | ---- | ---- |
-| User asks about a specific section | Use `anchors` to locate and extract relevant paragraphs |
-| Content is long (>3000 chars) | Show `anchors` directory first for user to select |
+| User asks about a specific section | Locate the matching `##` heading inside `content` and extract that paragraph |
+| Content is long (>3000 chars) | Summarize the heading outline from `content` first, let user select, then present the chosen section |
 | User needs the full document | Output all `content` directly |
 | User needs code examples | Focus on displaying code block sections |
 
@@ -92,8 +89,9 @@ When `detail` returns `content` > 3000 characters, **first** display the `anchor
 | URL detail fetch failure | detail returns `error` field | Indicate document may be offline; provide `url` from search results for direct access |
 | Network error | HTTPError / connection failure | **Explicitly report**, never silently swallow; suggest retrying later |
 | `doc_type` parameter error | argparse validation fails | Exit code 2; indicate valid doc_type values |
+| URL host not whitelisted | detail returns `blocked: host ... not in allowed` | Use the `url` field from kb/search hit results verbatim (mirror domains), do not hand-write `flutter.dev`/`dart.dev` |
 | Empty content | `content: ""` | Document may be updating; provide `url` for user to view directly |
-| `object_id` does not exist | detail API error | Verify `object_id` spelling; or re-search to get latest results |
+| URL does not exist / 404 | detail returns `error` field | Verify `url` spelling; or re-search to get latest results |
 
 > 🔴 **CHECKPOINT**: The script layer **does not retry** zero-result responses (retry logic belongs to the agent layer). Scripts only explicitly write errors into the `errors` field.
 
@@ -103,8 +101,8 @@ When `detail` returns `content` > 3000 characters, **first** display the `anchor
 1. kb query(keyword, doc_type?) — local matching
    ├─ Hit → display result list, ask user which document to view
    └─ No results → retry with different keywords (up to 2 times) → still none → fall back to URL fetching
-2. detail(object_id, doc_type) — fetch URL body
-   ├─ content non-empty → output Markdown (for long documents, show anchors directory first)
+2. detail(url) — fetch URL body
+   ├─ content non-empty → output Markdown (for long documents, show heading outline first)
    └─ content empty → inform user and provide url
 3. kb collaboration (if needs_description=True):
    ├─ Backfill description (≤200 chars)
@@ -113,7 +111,7 @@ When `detail` returns `content` > 3000 characters, **first** display the `anchor
 
 Quick reference text steps:
 
-1. `kb query(keyword)` select doc_type → 2. Display list for user to select → 3. `detail(object_id, doc_type)` fetch body → 4. Output Markdown (for long documents, show anchors directory first) → 5. kb collaboration: backfill description + update-links bidirectional linking.
+1. `kb query(keyword)` select doc_type → 2. Display list for user to select → 3. `detail(url)` fetch body → 4. Output Markdown (for long documents, show heading outline first) → 5. kb collaboration: backfill description + update-links bidirectional linking.
 
 ## Keyword selection strategy
 
@@ -121,13 +119,13 @@ Quick reference text steps:
 - Both Chinese and English are acceptable; Chinese偏向 guides, English偏向 API reference.
 - Use Widget names directly as keywords (e.g., `CustomScrollView`).
 - When search returns no results: shorten keywords, switch to English terms, remove version numbers and retry.
-- Dart language questions can directly visit `dart.dev/language`.
+- Dart language questions can directly visit the Dart/Flutter mirrors (`docs.flutter.cn`).
 
 ## Collaboration with kb
 
 `search detail` is the **sole legitimate body source** for `kb` subcommand's `description` lazy filling and link extraction:
 
-- `kb query` hits `needs_description=True` document → agent calls `search detail <object_id> <doc_type>` to fetch body → generates ≤200 char description → `kb update-description` backfills.
+- `kb query` hits `needs_description=True` document → agent calls `search detail <url>` to fetch body → generates ≤200 char description → `kb update-description` backfills.
 - Same body → `kb update-links --id <id> --content "<markdown>"` extracts bidirectional links.
 
 See "Lazy filling workflow" and "update-links" sections in [`kb.md`](kb.md).
@@ -143,7 +141,7 @@ When the `fix` subcommand encounters an unfamiliar `package:` API or an error no
 
 | Scenario | Handling |
 | ---- | ---- |
-| No local results, URL fetch also fails | Inform user; suggest visiting `docs.flutter.dev` directly |
+| No local results, URL fetch also fails | Inform user; suggest visiting `docs.flutter.cn` directly |
 | `--doc-type` is not a valid value | argparse error, exit code 2 |
 | User did not specify intent | Do not pass `--doc-type`, search full library |
 | Too many results | Suggest user narrow scope or specify `--doc-type` |
@@ -159,10 +157,9 @@ When the `fix` subcommand encounters an unfamiliar `package:` API or an error no
 - [ ] After displaying results, **do not automatically fetch details**; wait for user selection
 
 ### detail workflow
-- [ ] `object_id` comes from search results (not manually fabricated)
-- [ ] `doc_type` is a valid value
+- [ ] `url` comes from search results (not manually fabricated)
 - [ ] When `content` is empty, provide `url` for user to visit directly
-- [ ] When `content > 3000` chars, show `anchors` directory first
+- [ ] When `content > 3000` chars, show heading outline first
 
 ### kb collaboration
 - [ ] When `kb query` hits `needs_description=True`, `search detail` has been called to fetch body

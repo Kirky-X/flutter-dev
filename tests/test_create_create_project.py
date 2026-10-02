@@ -115,6 +115,16 @@ class TestSubprocessPaths(unittest.TestCase):
                 cp.create_project("app", "/tmp/x")
         self.assertIn("超时", str(ctx.exception))
 
+    def test_flutter_not_found_raises_runtimeerror(self):
+        with mock.patch.object(
+            cp.subprocess,
+            "run",
+            side_effect=FileNotFoundError(2, "No such file or directory: 'flutter'"),
+        ):
+            with self.assertRaises(RuntimeError) as ctx:
+                cp.create_project("app", "/tmp/x")
+        self.assertIn("flutter CLI 未找到", str(ctx.exception))
+
 
 class TestCli(unittest.TestCase):
     def _run(self, argv, **run_kwargs):

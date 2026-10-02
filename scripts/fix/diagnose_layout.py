@@ -50,7 +50,7 @@ _LAYOUT_PATTERNS: list[tuple[str, list[re.Pattern[str]], str, str]] = [
         "1) 检查 Row/Column 是否在无界约束中（如 ListView/ScrollView 内层 Row 未设 mainAxisSize）；"
         "2) 给溢出方向的子节点包 Expanded/Flexible；"
         "3) 文本类节点加 overflow: TextOverflow.ellipsis + maxLines；"
-        "4) 确认 MediaType.of(context) 是否正确（横竖屏切换时尺寸变化）。",
+        "4) 确认 MediaQuery.of(context) 是否正确（横竖屏切换时尺寸变化）。",
     ),
     (
         "Unbounded constraints",

@@ -1,6 +1,6 @@
 # fix subcommand — Error fixing (symptom routing + three tracks)
 
-Routes user symptoms to one of three fix tracks: analyzer errors (analyzer-errors) / runtime crashes (runtime-errors) / layout issues (layout-errors). **First route by symptom table to select a track, then enter the track to execute**.
+Routes user symptoms to one of three script fix tracks: analyzer errors (analyzer-errors) / runtime crashes (runtime-errors) / layout issues (layout-errors); two doc-only routes (grammar / build) have no script entry. **First route by symptom table to select a track, then enter the track to execute**.
 
 > **确定性检查优先走 scripts/**：本节的裸 `flutter analyze` / `flutter run` 步骤是手动兜底。三条轨道各有确定性脚本入口（cwd=skill 根目录）：
 >

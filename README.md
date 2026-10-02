@@ -17,7 +17,7 @@
 | `kb` | 本地 Qdrant 知识库，**14 个子动作**（`--help` 实测）：query / build / merge / reindex / update-description / update-links / link-auto / migrate-embed-model / config / fetch-content / update-content / fetch-and-update / migrate-context / refresh-expired | `scripts/kb/` |
 | `search` | 本地 sidebars 关键词匹配 + URL 正文抓取（docs.flutter.cn / api.flutter-io.cn / pub.dev），HTML→Markdown 清洗 | `scripts/search/{_http,search,detail}.py` |
 
-**预构建知识库**：仓库自带 `data/flutter.qdrant/`（meta 实测 `doc_count: 495`，384 维，collection `flutter_docs`），3 类侧栏文档分库存储（docs / api / ai-docs，3 个 sidebar 文件均随仓库分发，开箱即可查询）。
+**知识库构建**：`data/flutter.qdrant/`（384 维，collection `flutter_docs`）属运行时派生品，**不入仓库**（见 `.gitignore`，仓库仅分发 `data/flutter.qdrant.meta.json` 元信息）——首次使用需先执行 `python3 scripts/kb/build_db.py` 全量构建；数据源 `sidebars/` 3 个 sidebar 文件（docs / api / ai-docs）均随仓库分发。
 
 **config.example.json 初始化流程**：`config.json` 含 API key 不入仓库。缺失时脚本回退内置默认值（stderr 提示）；需要自定义云端模型/key 时执行 `cp config.example.json config.json` 后编辑。embed_model 为默认值且预构建库存在 → 直接用预构建库，不重算向量。
 
@@ -37,12 +37,9 @@ flowchart LR
 ## 📦 安装
 
 ```bash
-# 同步到 agent 技能目录（~/.zcode/skills 与 ~/.claude/skills）
-bash scripts/sync-skills.sh flutter-dev
-
 # 首跑前置：kb / search / test 的 Python 依赖
 pip install -r requirements.txt   # qdrant-client / rank-bm25 / httpx / sentence-transformers / modelscope
-# 方式三：远程安装（GitHub 仓库）
+# 或：远程安装（GitHub 仓库）
 npx skills add Kirky-X/flutter-dev --agent claude-code -y
 ```
 
@@ -63,10 +60,10 @@ python3 -m scripts.test.cli check
 python3 -m scripts.test.cli run --project-path <project_dir>       # flutter test
 python3 -m scripts.test.cli run --project-path <project_dir> --integration
 
-# kb — 本地语义查询（预构建库 495 向量）
+# kb — 本地语义查询（fresh clone 需先 python3 scripts/kb/build_db.py 构建库）
 python3 -m scripts.kb.cli query --question "<关键词>" [--top-k 5] [--doc-type docs|api|ai-docs] [--rerank]
 
-# search — 本地侧栏匹配（实测离线命中：'Widget lifecycle' → 4 条结果）
+# search — 本地侧栏匹配（实测离线命中：'Widget lifecycle' → 6 条结果）
 python3 -m scripts.search.search "<关键词>" [--doc-type docs|api|ai-docs] [--top-k 10]
 python3 -m scripts.search.detail <url>
 ```
@@ -87,8 +84,8 @@ flutter-dev/
 ├── skill.json                  # 技能元数据（版本/触发标签）
 ├── sidebars/                   # flutter-docs.md / flutter-api.md / flutter-ai-docs.md
 ├── data/
-│   ├── flutter.qdrant/               # 预构建 Qdrant 库（495 向量）
-│   └── flutter.qdrant.meta.json      # 库元数据（doc_count/embed_model）
+│   ├── flutter.qdrant/               # Qdrant 库（kb build 生成，不入仓库）
+│   └── flutter.qdrant.meta.json      # 库元数据（doc_count/embed_model，入库）
 ├── references/
 │   ├── commands/               # 5 子命令工作流文档
 │   ├── dev-rules.md            # Dart/Flutter API/UI 三类强制规则
@@ -101,7 +98,7 @@ flutter-dev/
 
 ## 🔮 边界
 
-- 鸿蒙 / HarmonyOS / ArkTS 用 **hap-dev**，本 skill 不触发
+- 鸿蒙 / HarmonyOS / ArkTS 用 **hap-dev**，Element Plus / Vue 用 **element-dev**，本 skill 均不触发
 - 开发规范：create 产物代码、fix 语法轨道、`flutter analyze` 必须遵循 [`references/dev-rules.md`](references/dev-rules.md)（Dart 语言 / Flutter API / UI 三类强制规则）
 - 不硬编码模型名/路径（一律读 config.json）；不同 embed_model 同维度的向量空间不兼容，query/merge/reindex 入口强校验、失配即响亮报错；双向链接必须真实写两侧；错误禁止静默吞掉（非零退出码 / errors 字段 / 异常）
 

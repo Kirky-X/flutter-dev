@@ -89,6 +89,10 @@ def create_project(
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            "flutter CLI 未找到（请确认 Flutter SDK 已安装并在 PATH）"
+        ) from e
     except subprocess.TimeoutExpired as e:
         raise RuntimeError(f"flutter create 超时（{e.timeout}s）") from e
     if result.returncode != 0:

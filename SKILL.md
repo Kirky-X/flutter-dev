@@ -1,6 +1,6 @@
 ---
 name: flutter-dev
-description: "Flutter/Dart application development skill. Triggers: Flutter/Dart/Widget/Material/Cupertino/create project/dart analyze/RenderFlex/NoSuchMethodError/flutter test/doc search/knowledge base/Flutter 开发/Dart 报错/Widget 布局/pub 依赖/Flutter 布局溢出/Flutter 测试. Do NOT trigger for: 鸿蒙/HarmonyOS/ArkTS (→ use hap-dev skill instead)."
+description: "Flutter/Dart application development skill. Triggers: Flutter/Dart/Widget/Material/Cupertino/create project/dart analyze/RenderFlex/NoSuchMethodError/flutter test/doc search/knowledge base/知识库/Flutter 开发/Dart 报错/Widget 布局/pub 依赖/pubspec/Flutter 布局溢出/Flutter 测试. Do NOT trigger for: 鸿蒙/HarmonyOS/ArkTS (→ use hap-dev skill instead); Element Plus/Vue (→ use element-dev skill instead)."
 license: MIT
 metadata:
   version: "0.1.3"
@@ -15,7 +15,7 @@ Five subcommands cover the full Flutter application development lifecycle: creat
 - **create** (upstream) — Python subprocess calls `flutter create`, with project name/org/platform validation + output directory generation. Solves "**how to start** a project".
 - **fix** (repair) — Aggregates three fix tracks: analyzer (`dart analyze` static error code routing), runtime (Dart stack trace parsing), layout (RenderFlex overflow / unbounded constraints / missing Material ancestor). Routes by symptom. Solves "**how to fix errors**".
 - **test** (verification) — Platform detection + Flutter SDK/Dart SDK probing + `flutter test` (unit/widget tests) + `flutter integration_test` (integration tests). Full functionality on all platforms (Flutter cross-platform, no MCP dependency). Solves "**is it correct**".
-- **kb** (knowledge base) — Local Qdrant knowledge base, 3 categories of sidebar documents stored separately (docs/api/ai-docs), vector embedding (default `paraphrase-MiniLM-L3-v2`, switchable between ModelScope/cloud) + bm25 keyword index + optional FlashRank reranking. Lazy description filling + vector backfilling + bidirectional links. Sub-actions: query/build/merge/reindex/update-description/update-links/link-auto/migrate-embed-model/config. Solves "**what can be queried locally**".
+- **kb** (knowledge base) — Local Qdrant knowledge base, 3 categories of sidebar documents stored separately (docs/api/ai-docs), vector embedding (default `paraphrase-multilingual-MiniLM-L12-v2`, switchable between ModelScope/cloud) + bm25 keyword index + optional FlashRank reranking. Lazy description filling + vector backfilling + bidirectional links. Sub-actions: query/build/merge/reindex/update-description/update-links/link-auto/migrate-embed-model/config. Solves "**what can be queried locally**".
 - **search** (online search) — Local sidebars keyword matching + URL content fetching (docs.flutter.cn / api.flutter-io.cn / pub.dev), HTML→Markdown cleaning. Serves as one of the legitimate channels for kb description/link filling. Solves "**what's available online**".
 
 ## Subcommand Routing
@@ -56,6 +56,14 @@ flowchart TD
 | Knowledge base management (build/merge/reindex/switch model) | kb | [`references/commands/kb.md`](references/commands/kb.md) |
 
 After entering a subcommand, follow its workflow documentation. Checkpoints, edge cases, and delivery checklists are all within each subcommand's document — **this router does not contain the main workflow**.
+
+## Deep-dive References
+
+Reusable sub-skill playbooks under `references/` (load on demand):
+
+Flutter topics (`references/flutter-skills/`): [apply-architecture-best-practices](references/flutter-skills/flutter-apply-architecture-best-practices/SKILL.md) · [add-integration-test](references/flutter-skills/flutter-add-integration-test/SKILL.md) · [add-widget-preview](references/flutter-skills/flutter-add-widget-preview/SKILL.md) · [add-widget-test](references/flutter-skills/flutter-add-widget-test/SKILL.md) · [build-responsive-layout](references/flutter-skills/flutter-build-responsive-layout/SKILL.md) · [fix-layout-issues](references/flutter-skills/flutter-fix-layout-issues/SKILL.md) · [implement-json-serialization](references/flutter-skills/flutter-implement-json-serialization/SKILL.md) · [setup-declarative-routing](references/flutter-skills/flutter-setup-declarative-routing/SKILL.md) · [setup-localization](references/flutter-skills/flutter-setup-localization/SKILL.md) · [use-http-package](references/flutter-skills/flutter-use-http-package/SKILL.md)
+
+Dart topics (`references/dart-skills/`): [add-unit-test](references/dart-skills/dart-add-unit-test/SKILL.md) · [build-cli-app](references/dart-skills/dart-build-cli-app/SKILL.md) · [collect-coverage](references/dart-skills/dart-collect-coverage/SKILL.md) · [fix-runtime-errors](references/dart-skills/dart-fix-runtime-errors/SKILL.md) · [generate-test-mocks](references/dart-skills/dart-generate-test-mocks/SKILL.md) · [migrate-to-checks-package](references/dart-skills/dart-migrate-to-checks-package/SKILL.md) · [resolve-package-conflicts](references/dart-skills/dart-resolve-package-conflicts/SKILL.md) · [run-static-analysis](references/dart-skills/dart-run-static-analysis/SKILL.md) · [setup-ffi-assets](references/dart-skills/dart-setup-ffi-assets/SKILL.md) · [use-ffigen](references/dart-skills/dart-use-ffigen/SKILL.md) · [use-pattern-matching](references/dart-skills/dart-use-pattern-matching/SKILL.md)
 
 ## First Run (Environment Setup)
 
@@ -163,7 +171,7 @@ flowchart LR
 | search detail content is empty | Check if URL is expired or requires login | Inform user and provide raw url for manual access |
 | ModelScope model download fails (404/timeout) | Retry + check model name spelling (e.g., `+` suffix is invalid) | Prompt manual download or switch to `openai://` cloud model |
 | Flutter SDK not installed (test check reports `Flutter SDK: not detected`) | Prompt installation at `flutter.dev/docs/get-started/install` | Re-run `check` after installation to verify |
-| fix symptom ambiguity | Fallback in order: analyzer → runtime → layout → grammar | Ask user for more specific symptoms (error code/stack trace/screenshot) |
+| fix symptom ambiguity | Fallback in order: analyzer → runtime → layout | Ask user for more specific symptoms (error code/stack trace/screenshot) |
 | sidebars/ parses 0 documents | Check if sidebars/ directory is non-empty + markdown format is valid (expect flutter-docs.md / flutter-api.md / flutter-ai-docs.md) | Ask user to re-provide the three sidebar markdown files into `sidebars/`; do not guess paths |
 | kb query reports `embed_model mismatch` | DB model differs from current config.json `embed_model` → choose: ①revert config.json to DB model; ②run `python3 scripts/kb/build_db.py` with new model for full rebuild | Different models with same dimension are incompatible; only `build_db.py` can rebuild from sidebars |
 | kb merge reports `embed_model mismatch` | Two DBs used different embed_models → reject merge. Reindex both to same model first, then merge | Contaminated DBs need `build_db.py` rebuild from sidebars |

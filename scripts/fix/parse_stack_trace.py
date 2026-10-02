@@ -45,6 +45,13 @@ _LOC_RE = re.compile(
     r"^(?P<file>.+?):(?P<line>\d+)(?::(?P<col>\d+))?$"
 )
 
+# 控制台行前缀：flutter run / flutter test / logcat 输出的日志行常带级别前缀，
+# 如 `E/Flutter ( 1234): #0  main (...)` 或 `E #0  main (...)`。剥前缀后再按
+# 标准格式匹配，避免控制台日志解析失败。
+_CONSOLE_PREFIX_RE = re.compile(
+    r"^(?:[VDIWEF]/[A-Za-z_][\w.]*\s*\(\s*\d+\s*\)\s*:\s*|[VDIWEF]\s+)"
+)
+
 # 异常头行：`ExceptionType: message` 或 `ExceptionType` 单独一行
 # 也匹配 `Unhandled exception:` 前缀
 _EXC_RE = re.compile(
@@ -62,6 +69,14 @@ _SPECIAL_FRAMES = {
 }
 
 
+def _strip_console_prefix(line: str) -> str:
+    """剥离 flutter run / logcat 风格的控制台行前缀（`E/Flutter ( 1234): `、`E `）。
+
+    无前缀的行原样返回；有前缀的行返回 `:` 之后的内容。
+    """
+    return _CONSOLE_PREFIX_RE.sub("", line)
+
+
 def extract_error_header(text: str) -> tuple[str, str]:
     """从日志文本中提取异常类型和消息。
 
@@ -75,7 +90,7 @@ def extract_error_header(text: str) -> tuple[str, str]:
         return "", ""
     # 异常头通常在前 20 行内
     for line in text.splitlines()[:20]:
-        stripped = line.strip()
+        stripped = _strip_console_prefix(line.strip())
         if not stripped:
             continue
         m = _EXC_RE.match(stripped)
@@ -183,7 +198,7 @@ def parse_stack_trace(text: str, source: str = "text") -> dict:
     # 收集所有 stack frame（按 #N 顺序）
     stack: list[dict] = []
     for line in text.splitlines():
-        stripped = line.strip()
+        stripped = _strip_console_prefix(line.strip())
         if not stripped:
             continue
         m = _FRAME_RE.match(stripped)

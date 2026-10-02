@@ -1,0 +1,117 @@
+{
+  "skill": "flutter-dev",
+  "queries": [
+    {
+      "q": "帮我创建一个新的 Flutter 项目，要支持 Android 和 iOS",
+      "expect": "trigger"
+    },
+    {
+      "q": "dart analyze 报 missing_required_param，这类静态错误怎么修",
+      "expect": "trigger"
+    },
+    {
+      "q": "应用崩了：NoSuchMethodError: The method 'build' was called on null",
+      "expect": "trigger"
+    },
+    {
+      "q": "Flutter 布局溢出了，日志是 A RenderFlex overflowed by 37 pixels on the right",
+      "expect": "trigger"
+    },
+    {
+      "q": "flutter test 跑不过，帮我看看 widget test 写得对不对",
+      "expect": "trigger"
+    },
+    {
+      "q": "查一下 ListView 这个 Widget 的文档和用法",
+      "expect": "trigger"
+    },
+    {
+      "q": "Dart 报错 type 'List<dynamic>' is not a subtype of type 'List<String>' 怎么回事",
+      "expect": "trigger"
+    },
+    {
+      "q": "在本地知识库里搜一下 MediaQuery 的用法",
+      "expect": "trigger"
+    },
+    {
+      "q": "pub 依赖冲突，pubspec.yaml 里两个包版本不兼容怎么解",
+      "expect": "trigger"
+    },
+    {
+      "q": "写一个 Flutter 页面布局：左边图片，右边是文字列表",
+      "expect": "trigger"
+    },
+    {
+      "q": "I'm building a Flutter app with Material 3 — how do I set up the theme?",
+      "expect": "trigger"
+    },
+    {
+      "q": "Flutter 开发时 Cupertino 风格的导航栏怎么写",
+      "expect": "trigger"
+    },
+    {
+      "q": "flutter run 后控制台报 Layout exception，说 Column 子项超宽",
+      "expect": "trigger"
+    },
+    {
+      "q": "用 Dart 写个异步请求，Future await 之后一直没回调",
+      "expect": "trigger"
+    },
+    {
+      "q": "这个 Flutter 页面布局溢出了，帮我修一下",
+      "expect": "trigger",
+      "mirror": "maliang"
+    },
+    {
+      "q": "鸿蒙 ArkTS 里 UIAbility 的生命周期怎么管理",
+      "expect": "no",
+      "owner": "hap-dev"
+    },
+    {
+      "q": "DevEco Studio 编译报 hvigor 错误，怎么排查",
+      "expect": "no",
+      "owner": "hap-dev"
+    },
+    {
+      "q": "HarmonyOS 元服务的 HAP 包安装失败，提示解析错误",
+      "expect": "no",
+      "owner": "hap-dev"
+    },
+    {
+      "q": "ArkUI 的 @State 装饰器和 Flutter 的 setState 有什么区别",
+      "expect": "no",
+      "owner": "hap-dev"
+    },
+    {
+      "q": "Element Plus 的 el-table 怎么动态控制列宽",
+      "expect": "no",
+      "owner": "element-dev"
+    },
+    {
+      "q": "Vue 3 项目里 ElDialog 关闭时销毁子元素怎么配置",
+      "expect": "no",
+      "owner": "element-dev"
+    },
+    {
+      "q": "给 el-form 的登录表单加校验规则",
+      "expect": "no",
+      "owner": "element-dev"
+    },
+    {
+      "q": "帮我初始化一个 Vue 3 + Element Plus 的后台管理项目",
+      "expect": "no",
+      "owner": "pangu",
+      "note": "Tier3 实测两次判 pangu，与 element-dev 侧既有裁决一致（element-dev 仅文档查询、项目脚手架归 pangu）"
+    },
+    {
+      "q": "把这张设计稿切图导出成 Flutter 可用的页面代码",
+      "expect": "no",
+      "owner": "maliang"
+    },
+    {
+      "q": "这个落地页太模板化了，帮我 redesign 一下提升质感",
+      "expect": "no",
+      "owner": "maliang"
+    }
+  ]
+}

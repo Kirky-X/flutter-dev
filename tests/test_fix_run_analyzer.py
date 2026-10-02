@@ -27,34 +27,32 @@ def _fake_result(returncode=0, stdout="", stderr=""):
     return result
 
 
+def _diag(severity, code, message, file, line, column):
+    """dart analyze --format=json 的真实 diagnostic 形态（severity 大写、
+    消息在 problemMessage、位置在 location.range.start，0-based）。"""
+    return {
+        "code": code,
+        "severity": severity,
+        "type": "COMPILE_TIME_ERROR" if severity == "ERROR" else "WARNING",
+        "location": {
+            "file": file,
+            "range": {"start": {"offset": 0, "line": line, "column": column}},
+        },
+        "problemMessage": message,
+    }
+
+
 def _diagnostics_payload():
     return json.dumps(
         {
             "diagnostics": [
-                {
-                    "severity": "warning",
-                    "code": "unused_import",
-                    "error_message": "Unused import.",
-                    "file": "lib/b.dart",
-                    "line": 3,
-                    "column": 8,
-                },
-                {
-                    "severity": "error",
-                    "code": "use_build_context_synchronously",
-                    "error_message": "Don't use BuildContext across async gaps.",
-                    "file": "lib/a.dart",
-                    "line": 10,
-                    "column": 3,
-                },
-                {
-                    "severity": "info",
-                    "code": "prefer_single_quotes",
-                    "error_message": "Prefer single quotes.",
-                    "file": "lib/c.dart",
-                    "line": 1,
-                    "column": 1,
-                },
+                _diag("WARNING", "unused_import", "Unused import.",
+                      "lib/b.dart", 3, 8),
+                _diag("ERROR", "use_build_context_synchronously",
+                      "Don't use BuildContext across async gaps.",
+                      "lib/a.dart", 10, 3),
+                _diag("INFO", "prefer_single_quotes", "Prefer single quotes.",
+                      "lib/c.dart", 1, 1),
             ]
         }
     )
@@ -86,6 +84,37 @@ class TestRunAnalyzer(unittest.TestCase):
         self.assertEqual(result["errors"][0]["code"], "use_build_context_synchronously")
         self.assertTrue(result["errors"][0]["hint"])
         self.assertEqual(result["warnings"][0]["code"], "unused_import")
+        # 真实 dart 字段提取（大写 severity 归一 + problemMessage + location）
+        err = result["errors"][0]
+        self.assertEqual(err["severity"], "error")
+        self.assertIn("BuildContext", err["error_message"])
+        self.assertEqual(err["file"], "lib/a.dart")
+        self.assertEqual(err["line"], 10)
+        self.assertEqual(err["column"], 3)
+
+    def test_real_dart_invalid_assignment_regression(self):
+        # 2026-10-02 真机实测抓到的回归：真实 dart 输出 severity 为大写，
+        # 旧实现按小写分桶导致 total=1 但 errors=[] 的静默失真。
+        real = json.dumps({
+            "diagnostics": [{
+                "code": "invalid_assignment",
+                "severity": "ERROR",
+                "type": "COMPILE_TIME_ERROR",
+                "location": {
+                    "file": "/tmp/flutter_e2e/lib/main.dart",
+                    "range": {"start": {"offset": 4825, "line": 124, "column": 20}},
+                },
+                "problemMessage": "A value of type 'String' can't be assigned to a variable of type 'int'.",
+            }]
+        })
+        with mock.patch.object(
+            ra.subprocess, "run", return_value=_fake_result(1, real)
+        ):
+            result = run_analyzer("/tmp/flutter_e2e")
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(len(result["errors"]), 1)
+        self.assertEqual(result["errors"][0]["code"], "invalid_assignment")
+        self.assertIn("can't be assigned", result["errors"][0]["error_message"])
 
     def test_stdout_prefix_fallback(self):
         noisy = "Analyzing myapp...\n" + _diagnostics_payload()
@@ -150,14 +179,14 @@ class TestCli(unittest.TestCase):
 
     def test_exit_2_warnings_only(self):
         payload = json.dumps(
-            {"diagnostics": [{"severity": "warning", "code": "unused_import"}]}
+            {"diagnostics": [{"severity": "WARNING", "code": "unused_import"}]}
         )
         code, _ = self._run(["."], returncode=2, stdout=payload)
         self.assertEqual(code, 2)
 
     def test_exit_3_infos_only(self):
         payload = json.dumps(
-            {"diagnostics": [{"severity": "info", "code": "prefer_single_quotes"}]}
+            {"diagnostics": [{"severity": "INFO", "code": "prefer_single_quotes"}]}
         )
         code, _ = self._run(["."], returncode=3, stdout=payload)
         self.assertEqual(code, 3)

@@ -26,11 +26,11 @@ Flutter sidebars (located in `sidebars/` directory):
 
 | doc_type | sidebar file | Content |
 | ---- | ---- | ---- |
-| `flutter-docs` | `flutter-docs.md` | Flutter official documentation (guides / tutorials) |
-| `flutter-api` | `flutter-api.md` | Flutter API reference (Widget / class / method) |
-| `flutter-ai-docs` | `flutter-ai-docs.md` | Flutter AI-assisted development documentation |
+| `docs` | `flutter-docs.md` | Flutter official documentation (guides / tutorials) |
+| `api` | `flutter-api.md` | Flutter API reference (Widget / class / method) |
+| `ai-docs` | `flutter-ai-docs.md` | Flutter AI-assisted development documentation |
 
-`query --doc-type` only accepts one of the above types; if not specified, searches the full library.
+`query --doc-type` only accepts one of the above types (argparse `choices` validation — an invalid value exits with code 2); if not specified, searches the full library.
 
 ## config.json field descriptions
 
@@ -53,7 +53,7 @@ Flutter sidebars (located in `sidebars/` directory):
 python3 -m scripts.kb.cli query \
   --question "How to implement a login page in Flutter" \
   [--top-k 5] \
-  [--doc-type flutter-docs] \
+  [--doc-type docs] \
   [--rerank]
 ```
 
@@ -65,10 +65,10 @@ Outputs a JSON array, each item containing `id` / `title` / `url` / `score` / `d
 
 When the `description` field is empty or "无描述", `needs_description=True`. The agent **MUST** execute lazy filling:
 
-1. Retrieve `id` (i.e., `object_id`) and `doc_type` from the matched document.
+1. Retrieve `url` from the matched document (the query output's `url` field).
 2. Call `search detail` to fetch body content:
    ```bash
-   python3 scripts/search/detail.py <object_id> <doc_type>
+   python3 -m scripts.search.detail <url>
    ```
 3. Agent generates a **≤200 character** description based on the body content.
 4. Backfill and recompute vector:
@@ -169,7 +169,7 @@ After `kb query` hits Flutter topic documents, the agent should **also** consult
 | ---- | ---- | ---- |
 | `config.json` missing | Agent asks via `AskUserQuestion`; if user selects default, generate default config | If user declines, stop |
 | Pre-built database does not exist | Call `kb build` to rebuild from `sidebars/` | If `sidebars/` is missing, prompt user |
-| `kb query` returns no results | Change keywords or call `search` for online search | If `search` also returns no results, suggest visiting `docs.flutter.dev` directly |
+| `kb query` returns no results | Change keywords or call `search` for online search | If `search` also returns no results, suggest visiting `docs.flutter.cn` directly |
 | Model download fails | Retry + mirror source configuration | Prompt user to download manually or switch to cloud model |
 
 ## Edge cases

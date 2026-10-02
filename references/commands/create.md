@@ -2,6 +2,15 @@
 
 Creates Flutter project scaffolding via the `flutter create` command: project name validation + platform selection + organization name + pubspec initialization + platform directory generation.
 
+> **确定性检查优先走 scripts/**：本节的裸 `flutter create` 步骤是手动兜底。脚本入口（cwd=skill 根目录）：
+>
+> ```bash
+> python3 -m scripts.create.create_project --name <project_name> --out <output_dir> \
+>     [--org com.example] [--platforms android,ios] [--force]
+> ```
+>
+> 脚本内置项目名/组织名/平台校验与「输出目录非空」检查（`--force` 跳过），`flutter create` 失败或缺 SDK 时以结构化 error + 非零退出码上报。
+
 > 🔴 **CHECKPOINT**: This script depends on the `flutter` CLI. If `flutter` is unavailable in the environment (`flutter --version` fails), stop immediately and inform the user that execution is not possible; do not degrade to a "model copies files one by one" mode.
 
 ## Required parameters
@@ -75,18 +84,23 @@ Missing files → treat as creation failure, **do not** proceed to subsequent co
 
 ### Step 4: Switch session project context (mandatory)
 
-After successful creation, call `switch_cwd` with the target path set to the generated project root `{projectPath}/{projectName}`.
+After successful creation, switch the working directory to the generated project root `{projectPath}/{projectName}`:
+
+```bash
+cd "{projectPath}/{projectName}"
+```
 
 Rationale:
 
 - `flutter run` / `flutter test` only work correctly when the current session context directory is the real project root.
 - This subcommand generates a complete project under the current path; without switching context, subsequent build/run may fail or operate in the wrong directory.
+- If the session cannot switch cwd, prefix every subsequent `flutter` command with the project root path (or `cd` per invocation).
 
-`switch_cwd` failure → report context switch failure and stop, **do not** proceed to feature implementation / `flutter run` / `flutter test`.
+`cd` failure (directory missing / permission denied) → report context switch failure and stop, **do not** proceed to feature implementation / `flutter run` / `flutter test`.
 
 ### Step 5: Continue feature work in the generated project
 
-Only execute when user has provided application behavior / UI / page / business requirements beyond the creation request, and only after `switch_cwd` succeeds.
+Only execute when user has provided application behavior / UI / page / business requirements beyond the creation request, and only after the working directory has been switched to the project root.
 
 Before implementing:
 
@@ -105,7 +119,7 @@ Report contents:
 - Absolute path of the project
 - projectName / orgName / platforms
 - `flutter create` exit status
-- Whether `switch_cwd` succeeded
+- Whether the working directory was switched to the project root
 - When feature work was done: analyze / run / verification status
 
 ## Edge cases
@@ -116,15 +130,14 @@ Report contents:
 | `projectName` contains uppercase / non-ASCII | Use `AskUserQuestion` to propose 2-3 snake_case candidates; call `flutter create` after user selects |
 | Target directory already exists and is non-empty | `flutter create` errors; use `AskUserQuestion` to ask user to overwrite / rename / cancel |
 | `pubspec.yaml` / `lib/main.dart` missing | Treat as creation failure, stop subsequent steps |
-| `switch_cwd` fails | Stop, do not proceed to feature implementation / run / test |
+| Working directory cannot be switched to the project root (`cd` fails) | Stop, do not proceed to feature implementation / run / test |
 | User specifies unsupported `--platforms` | `flutter create` errors; indicate valid platform list |
-| User has already approved Plan | Do not create new plan, do not `plan_enter` / `plan_write`, do not request approval again; proceed with existing plan |
 
 ## Delivery checklist
 
 - [ ] Required parameters complete; `projectName` passes regex; non-ASCII name selected by user from candidates
 - [ ] `flutter create` runs with correct parameters, exit code 0
 - [ ] `{projectPath}/{projectName}/pubspec.yaml` and `lib/main.dart` exist
-- [ ] `switch_cwd` successfully switches to project root
+- [ ] Working directory switched to the project root (or every subsequent `flutter` command prefixed with it)
 - [ ] (When feature work exists) `flutter analyze` passes; `flutter run` starts successfully
-- [ ] Report includes path / projectName / orgName / platforms / `switch_cwd` status / analyze+run status
+- [ ] Report includes path / projectName / orgName / platforms / working-directory status / analyze+run status

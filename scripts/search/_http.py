@@ -154,6 +154,12 @@ _P_CLOSE_RE = re.compile(r"</p>", re.IGNORECASE)
 _BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
 _HR_RE = re.compile(r"<hr\s*/?>", re.IGNORECASE)
 _BQ_RE = re.compile(r"<blockquote\b[^>]*>(.*?)</blockquote>", re.DOTALL | re.IGNORECASE)
+_MAIN_RE = re.compile(r"<main\b[^>]*>(.*?)</main>", re.DOTALL | re.IGNORECASE)
+_MATERIAL_ICON_RE = re.compile(
+    r'<(?:span|i|mat-icon)\b[^>]*class\s*=\s*["\'][^"\']*material-(?:symbols|icons)[^"\']*["\'][^>]*>'
+    r".*?</(?:span|i|mat-icon)>",
+    re.DOTALL | re.IGNORECASE,
+)
 
 _ENTITY_MAP = {
     "&amp;": "&",
@@ -257,6 +263,13 @@ def html_to_markdown(html: str) -> str:
 
     text = html
 
+    # 0. Prefer the page's <main> body: header/sidebar/footer navigation would
+    #    otherwise leak its menu items into the output as stray list items.
+    #    Falls back to the whole document when there is no <main>.
+    main_match = _MAIN_RE.search(text)
+    if main_match:
+        text = main_match.group(1)
+
     # 1. Drop script/style blocks entirely.
     text = _SCRIPT_RE.sub("", text)
     text = _STYLE_RE.sub("", text)
@@ -270,6 +283,11 @@ def html_to_markdown(html: str) -> str:
         return f"\x00PRE{len(pre_blocks) - 1}\x00"
 
     text = _PRE_RE.sub(_stash_pre, text)
+
+    # Drop Material icon ligature elements (e.g. the sidebar chevron_right):
+    # their inner text is an icon name, not page content. Runs after <pre>
+    # stashing so icon markup quoted inside code samples survives.
+    text = _MATERIAL_ICON_RE.sub("", text)
 
     # 3. Tables -> Markdown tables (before generic tag stripping).
     text = _TABLE_RE.sub(_convert_table, text)
@@ -291,8 +309,14 @@ def html_to_markdown(html: str) -> str:
     text = _H_RE.sub(_convert_heading, text)
 
     # 6. Links (double-quoted href first, then single-quoted).
-    text = _A_RE.sub(r"[\2](\1)", text)
-    text = _A_SQUOTE_RE.sub(r"[\2](\1)", text)
+    # Link text comes from multi-line HTML anchors — strip inner tags and
+    # collapse whitespace so `[ Align ](url)` renders as a valid Markdown link.
+    def _link(m: re.Match[str]) -> str:
+        label = re.sub(r"\s+", " ", _strip_tags(m.group(2))).strip()
+        return f"[{label}]({m.group(1)})"
+
+    text = _A_RE.sub(_link, text)
+    text = _A_SQUOTE_RE.sub(_link, text)
 
     # 7. Inline emphasis.
     text = _STRONG_RE.sub(r"**\1**", text)
@@ -323,7 +347,10 @@ def html_to_markdown(html: str) -> str:
 
     text = re.sub(r"\x00PRE(\d+)\x00", _restore_pre, text)
 
-    # 14. Collapse excessive blank lines and trailing whitespace.
+    # 14. Collapse excessive blank lines and trailing whitespace. Whitespace-only
+    #     lines are normalized to empty lines first, or a run of " \n \n \n"
+    #     (left by empty nav/paragraph elements) evades the \n{3,} collapse.
+    text = re.sub(r"[ \t]+\n", "\n", text)
     text = _BLANK_LINES_RE.sub("\n\n", text)
     text = _TRAILING_SPACES_RE.sub("\n", text)
     return text.strip()

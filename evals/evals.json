@@ -1,0 +1,126 @@
+{
+  "skill_name": "flutter-dev",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我创建一个新的 Flutter 项目，要支持 Android 和 iOS",
+      "expected_output": "路由到 create 子命令：确认 projectName（snake_case）与 platforms 后调 scripts.create.create_project，产物含 pubspec.yaml 与 lib/main.dart；不执行后续开发",
+      "assertions": [
+        "使用 scripts.create.create_project 而非手工复制模板文件",
+        "projectName 不合法时给出 snake_case 候选并让用户选择，不擅自决定"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "dart analyze 报 missing_required_param，这类静态错误怎么修",
+      "expected_output": "路由到 fix 子命令 analyzer 轨道：references/error-fixes/analyzer-errors.md 定位类别，最小化修复后重跑 dart analyze 验证"
+    },
+    {
+      "id": 3,
+      "prompt": "应用崩了：NoSuchMethodError: The method 'build' was called on null",
+      "expected_output": "路由到 fix 子命令 runtime 轨道：scripts.fix.parse_stack_trace 解析堆栈取栈顶帧，参考 runtime-errors.md/null-safety-errors.md 修复，不先做大规模代码阅读"
+    },
+    {
+      "id": 4,
+      "prompt": "Flutter 布局溢出了，日志是 A RenderFlex overflowed by 37 pixels on the right",
+      "expected_output": "路由到 fix 子命令 layout 轨道：scripts.fix.diagnose_layout 识别 RenderFlex overflowed（右向 37px），按建议包 Expanded/ellipsis 修复，不引用不存在的 API",
+      "assertions": [
+        "修复建议只包含真实存在的 Flutter API（如 MediaQuery.of(context)），不出现 MediaType 之类的不存在 API"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "flutter test 跑不过，帮我看看 widget test 写得对不对",
+      "expected_output": "路由到 test 子命令：先 scripts.test.cli check 检测 SDK，再 run --project-path 执行；区分测试错误与被测代码错误，被测代码错误转 fix 轨道，测试本身错误修测试不删测试"
+    },
+    {
+      "id": 6,
+      "prompt": "查一下 ListView 这个 Widget 的文档和用法",
+      "expected_output": "路由到 kb/search：先 kb query 本地知识库（或 scripts.search.search 本地侧栏匹配）拿 ListView 文档条目，需要正文时用 scripts.search.detail <url>（单 URL 参数，docs.flutter.cn 域名）抓取"
+    },
+    {
+      "id": 7,
+      "prompt": "Dart 报错 type 'List<dynamic>' is not a subtype of type 'List<String>' 怎么回事",
+      "expected_output": "识别为 Dart TypeError，走 fix runtime 轨道或 analyzer 轨道定位 as 转型/动态列表来源，给出 is 检查或显式类型标注修复"
+    },
+    {
+      "id": 8,
+      "prompt": "在本地知识库里搜一下 MediaQuery 的用法",
+      "expected_output": "调 scripts.kb.cli query --question \"MediaQuery\"（--doc-type 只用 docs|api|ai-docs），返回 JSON 结果列表；命中 needs_description=True 时按 kb.md 懒回填流程补 description"
+    },
+    {
+      "id": 9,
+      "prompt": "pub 依赖冲突，pubspec.yaml 里两个包版本不兼容怎么解",
+      "expected_output": "识别为 Flutter pub 依赖问题：分析版本约束冲突来源，给出升级/降级或 dependency_overrides 方案；需要文档支撑时走 search 渠道"
+    },
+    {
+      "id": 10,
+      "prompt": "写一个 Flutter 页面布局：左边图片，右边是文字列表",
+      "expected_output": "用 Row + Image/Expanded + Column 组合实现，遵循 references/dev-rules.md 与 flutter-ui/ 规范（Material 3/约束规则），不与项目风格冲突"
+    },
+    {
+      "id": 15,
+      "prompt": "这个 Flutter 页面布局溢出了，帮我修一下",
+      "expected_output": "本 skill 接管（镜像正例，maliang 侧登记为让渡负例）：走 fix layout 轨道，diagnose_layout 定位溢出方向并给出修复",
+      "assertions": [
+        "不把它当设计任务处理，直接进入布局错误诊断流程"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "鸿蒙 ArkTS 里 UIAbility 的生命周期怎么管理",
+      "expected_output": "让渡给 hap-dev（鸿蒙/ArkTS 声明边界），本 skill 不接",
+      "assertions": [
+        "不调用本 skill 的任何子命令处理该 query"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "DevEco Studio 编译报 hvigor 错误，怎么排查",
+      "expected_output": "让渡给 hap-dev（DevEco/hvigor 是鸿蒙工具链），本 skill 不接"
+    },
+    {
+      "id": 18,
+      "prompt": "HarmonyOS 元服务的 HAP 包安装失败，提示解析错误",
+      "expected_output": "让渡给 hap-dev（HarmonyOS/HAP 构建域），本 skill 不接"
+    },
+    {
+      "id": 19,
+      "prompt": "ArkUI 的 @State 装饰器和 Flutter 的 setState 有什么区别",
+      "expected_output": "让渡给 hap-dev（提问主体是 ArkUI 装饰器）；虽然句中含 Flutter setState 对比词，主域是鸿蒙开发"
+    },
+    {
+      "id": 20,
+      "prompt": "Element Plus 的 el-table 怎么动态控制列宽",
+      "expected_output": "让渡给 element-dev（Element Plus 组件域），本 skill 不接",
+      "assertions": [
+        "不因同为 UI 组件文档查询而误用 Flutter 知识库回答"
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "Vue 3 项目里 ElDialog 关闭时销毁子元素怎么配置",
+      "expected_output": "让渡给 element-dev（Vue 3/ElDialog 组件配置域），本 skill 不接"
+    },
+    {
+      "id": 22,
+      "prompt": "给 el-form 的登录表单加校验规则",
+      "expected_output": "让渡给 element-dev（el-form 组件用法域），本 skill 不接"
+    },
+    {
+      "id": 23,
+      "prompt": "帮我初始化一个 Vue 3 + Element Plus 的后台管理项目",
+      "expected_output": "让渡给 pangu（项目脚手架；element-dev 仅文档查询，Tier3 实测亦判 pangu）（Element Plus 项目域），不使用本 skill 的 create（那是 flutter create 封装）"
+    },
+    {
+      "id": 24,
+      "prompt": "把这张设计稿切图导出成 Flutter 可用的页面代码",
+      "expected_output": "让渡给 maliang（设计稿转代码属设计生成域）；转出后的 Flutter 代码本身报错诊断/工程化才回 flutter-dev"
+    },
+    {
+      "id": 25,
+      "prompt": "这个落地页太模板化了，帮我 redesign 一下提升质感",
+      "expected_output": "让渡给 maliang（UI 设计改版域，非 Flutter/Dart 开发域），本 skill 不接"
+    }
+  ]
+}

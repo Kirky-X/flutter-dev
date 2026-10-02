@@ -13,6 +13,11 @@ Actions:
     link-auto            --threshold --max-per-doc     (B2)
     migrate-embed-model  [--model <name>]              (B1 migration)
     config               (print current config)
+    fetch-content        --url                         (B16)
+    fetch-and-update     --url --doc-id [--description] (T-verify)
+    update-content       --doc-id --description [--context-file] (B17)
+    migrate-context      (B14 migration)
+    refresh-expired      [--expire-days]               (B18)
 
 db_path / collection / sidebars_dir / embed_model all come from config.json —
 no hard-coded paths (per spec). `--config` overrides the config file location;
@@ -43,11 +48,6 @@ from .reindex import reindex as do_reindex
 from .sidebar_parser import parse_all_sidebars
 from .update_content import update_content
 from .update_description import update_description
-
-ACTIONS = ("query", "build", "merge", "reindex", "update-description",
-           "update-links", "link-auto", "migrate-embed-model", "config",
-           "fetch-content", "update-content", "migrate-context", "refresh-expired")
-
 
 # ---- factories (kept module-level so tests can monkeypatch them) -----------
 
@@ -99,14 +99,17 @@ def _load_cfg(config_arg: Optional[str]) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="scripts.kb.cli",
-        description="HarmonyOS local Qdrant knowledge-base tool",
+        description="Flutter local Qdrant knowledge-base tool",
     )
     sub = p.add_subparsers(dest="action", required=True)
 
     q = sub.add_parser("query", help="hybrid vector+BM25 search")
     q.add_argument("--question", required=True)
     q.add_argument("--top-k", type=int, default=None)
-    q.add_argument("--doc-type", default=None)
+    # choices must match SIDEBAR_FILE_MAP values (sidebar_parser.py); an
+    # unvalidated value would silently return 0 results via exact-match filter.
+    q.add_argument("--doc-type", default=None,
+                   choices=["docs", "api", "ai-docs"])
     q.add_argument("--rerank", action="store_true")
     q.add_argument("--config", default=None)
 

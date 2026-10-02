@@ -29,3 +29,13 @@ def test_default_config_collection_matches_flutter_layout():
         "DEFAULT_CONFIG['collection'] must be 'flutter_docs' to match "
         f"config.json; got {DEFAULT_CONFIG['collection']!r}"
     )
+
+
+def test_default_config_embed_source_matches_config_json():
+    """embed_source fallback must be exactly 'modelscope' — embed.py branches on
+    `self.source == "modelscope"`; a misspelled fallback (e.g. "modelscopes")
+    silently reroutes model downloads to HuggingFace when config.json is missing."""
+    assert DEFAULT_CONFIG["embed_source"] == "modelscope", (
+        "DEFAULT_CONFIG['embed_source'] must be 'modelscope' to match "
+        f"config.json; got {DEFAULT_CONFIG['embed_source']!r}"
+    )

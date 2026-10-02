@@ -1,22 +1,22 @@
-"""One-shot prebuild script for the HarmonyOS knowledge base (task 7.1).
+"""One-shot prebuild script for the Flutter knowledge base (task 7.1).
 
 Usage:
     python3 scripts/kb/build_db.py [--config CONFIG] [--sidebars-dir DIR]
 
-Reads ``config.json`` (or DEFAULT_CONFIG when absent), parses the 9 sidebar
+Reads ``config.json`` (or DEFAULT_CONFIG when absent), parses the 3 sidebar
 files in ``sidebars_dir``, builds a fresh Qdrant local-mode index at
 ``db_path`` using the configured ``embed_model``, and prints a summary of the
 result (per-doc-type counts, total vectors, on-disk size of the DB).
 
 This is the script users invoke to (re)generate the prebuilt
-``data/harmonyos.qdrant`` shipped with the skill. The default config uses
-``sentence-transformers/paraphrase-MiniLM-L3-v2`` via ModelScope; switching
+``data/flutter.qdrant`` shipped at first build. The default config uses
+``sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`` via ModelScope; switching
 ``embed_model`` in ``config.json`` then re-running this script refreshes all
 vectors (see also ``reindex.py`` for hash-delta re-embedding).
 
-Note: the user's original spec named the model ``paraphrase-MiniLM-L3-v2+``
+Note: the user's original spec named the model ``paraphrase-multilingual-MiniLM-L12-v2+``
 (with a trailing ``+``), but that suffix is invalid for both HuggingFace repo
-ids and ModelScope — the actual published model is ``paraphrase-MiniLM-L3-v2``
+ids and ModelScope — the actual published model is ``paraphrase-multilingual-MiniLM-L12-v2``
 (no ``+``). ``config.json`` and ``DEFAULT_CONFIG`` use the correct name.
 
 The script reuses ``cli.make_embedder`` / ``cli.make_indexer`` /
@@ -40,7 +40,7 @@ from typing import Any
 
 # Allow both ``python3 -m scripts.kb.build_db`` and direct
 # ``python3 scripts/kb/build_db.py`` invocation by ensuring the project
-# root (hap-dev) is on sys.path when run as a plain script.
+# root (flutter-dev) is on sys.path when run as a plain script.
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -191,7 +191,7 @@ def build_database(config_arg: str | None = None,
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         prog="build_db.py",
-        description="One-shot prebuild of the HarmonyOS Qdrant knowledge base.",
+        description="One-shot prebuild of the Flutter Qdrant knowledge base.",
     )
     p.add_argument(
         "--config", default=None,

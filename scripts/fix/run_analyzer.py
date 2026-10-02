@@ -83,17 +83,24 @@ def route_error_code(code: str) -> dict:
 
 
 def _classify_severity(issue: dict) -> dict:
-    """从单个 analyzer issue 提取关键字段并附加路由建议。"""
+    """从单个 analyzer issue 提取关键字段并附加路由建议。
+
+    输入是 `dart analyze --format=json` 的原始 diagnostic：severity 为大写
+    （"ERROR"/"WARNING"/"INFO"），消息在 problemMessage，位置在
+    location.range.start（0-based line/column）。
+    """
     code = issue.get("code", "") or ""
-    severity = issue.get("severity", "info") or "info"
+    severity = (issue.get("severity") or "info").lower()
+    location = issue.get("location") or {}
+    start = location.get("range", {}).get("start", {}) or {}
     routed = route_error_code(code) if code else {"code": "", "doc": ANALYZER_FIX_DOC, "hint": ""}
     return {
         "severity": severity,
         "code": code,
-        "error_message": issue.get("error_message", "") or "",
-        "file": issue.get("file", "") or "",
-        "line": issue.get("line", 0) or 0,
-        "column": issue.get("column", 0) or 0,
+        "error_message": issue.get("problemMessage", "") or "",
+        "file": location.get("file", "") or "",
+        "line": start.get("line", 0) or 0,
+        "column": start.get("column", 0) or 0,
         "fix_doc": routed["doc"],
         "hint": routed["hint"],
     }

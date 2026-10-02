@@ -66,6 +66,36 @@ class TestHtmlToMarkdown(unittest.TestCase):
         self.assertNotIn(".x{}", md)
         self.assertIn("kept", md)
 
+    def test_material_icon_ligature_stripped(self):
+        md = html_to_markdown(
+            '<a href="/ui">UI</a>'
+            '<span class="material-symbols" aria-hidden="true">chevron_right</span>'
+            '<a href="/ui/layout">Layout</a>'
+        )
+        self.assertNotIn("chevron_right", md)
+        self.assertIn("[UI](/ui)", md)
+        self.assertIn("[Layout](/ui/layout)", md)
+
+    def test_icon_name_inside_pre_survives(self):
+        md = html_to_markdown("<pre><code>Icon(Icons.chevron_right)</code></pre>")
+        self.assertIn("chevron_right", md)
+        self.assertIn("Icon(Icons.chevron_right)", md)
+
+    def test_main_body_preferred_over_nav(self):
+        html = (
+            "<html><body><nav><a href='/nav'>SiteNav</a></nav>"
+            "<main><h1>Real Body</h1><p>content</p></main>"
+            "<footer>FooterStuff</footer></body></html>"
+        )
+        md = html_to_markdown(html)
+        self.assertIn("Real Body", md)
+        self.assertNotIn("SiteNav", md)
+        self.assertNotIn("FooterStuff", md)
+
+    def test_no_main_falls_back_to_whole_document(self):
+        md = html_to_markdown("<div><p>plain fragment</p></div>")
+        self.assertEqual(md, "plain fragment")
+
     def test_entities(self):
         self.assertEqual(html_to_markdown("a &amp; b &lt; c &#65; &#x42;"), "a & b < c A B")
 
