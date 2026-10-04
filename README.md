@@ -1,6 +1,6 @@
 # flutter-dev — Flutter/Dart 应用开发技能
 
-> 面向 AI agent 的 Flutter/Dart 应用开发技能：create（建工程）→ fix（修报错）→ test（跑测试）覆盖开发生命周期，kb（本地 Qdrant 知识库）与 search（在线文档搜索）提供知识支撑。跨 Linux / Windows / macOS，无 MCP 依赖。
+> 面向 AI agent 的 Flutter/Dart 应用开发技能：create（建工程）→ fix（修报错）→ test（跑测试）覆盖开发生命周期，kb（本地 Qdrant 知识库）与 search（在线文档搜索）提供知识支撑。跨 Linux / Windows / macOS，五个子命令脚本不依赖 MCP。
 
 [![GitHub Release](https://img.shields.io/github/v/release/Kirky-X/flutter-dev?style=flat-square)](https://github.com/Kirky-X/flutter-dev/releases)
 [![License](https://img.shields.io/github/license/Kirky-X/flutter-dev?style=flat-square)](LICENSE)
@@ -72,7 +72,7 @@ python3 -m scripts.search.detail <url>
 
 ## ✅ 测试与验证
 
-实测 `python3 -m pytest scripts/ -q`：**143 passed**（测试文件随仓库分发，`FakeEmbedder` 用 SHA1 派生确定性向量，离线可跑）。另实测通过：`create_project --help`、`fix.parse_stack_trace` 真实日志解析、`test.cli check`（本机无 Flutter SDK 时如实输出 `flutter_installed: false`）、`search` 本地匹配。
+实测 `python3 -m pytest scripts/ -q`：**144 passed**（测试文件随仓库分发，`FakeEmbedder` 用 Python 内置 `hash()` 派生同进程内确定的向量，离线可跑）。另实测通过：`create_project --help`、`fix.parse_stack_trace` 真实日志解析、`test.cli check`（本机无 Flutter SDK 时如实输出 `flutter_installed: false`）、`search` 本地匹配。
 
 ## 📁 目录结构
 

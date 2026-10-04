@@ -25,6 +25,26 @@ Prioritize phase 1 (kb already indexed); fetch URL via phase 2 when body content
 
 ## Command format
 
+### Local keyword matching (`search` CLI)
+
+Offline keyword matching over `sidebars/*.md` titles (no kb index needed):
+
+```bash
+python3 -m scripts.search.search "<keyword>" \
+  [--doc-type docs|api|ai-docs] \
+  [--top-k 10] \
+  [--sidebars-dir <dir>]
+```
+
+| Parameter | Required | Description |
+| ---- | ---- | ---- |
+| `keyword` | Yes | Search keyword (e.g. `ListView` / `RenderFlex`) |
+| `--doc-type` | No | Filter by `docs` / `api` / `ai-docs`; omit to search all sidebars |
+| `--top-k` | No | Return top K matches (default 10, max 100) |
+| `--sidebars-dir` | No | Sidebars directory (default `<project_root>/sidebars`) |
+
+Output: a JSON object with `keyword` / `doc_type` / `total` / `results` / `errors`; each result contains `title` / `url` / `doc_type` / `score`. When nothing matches and sidebar files failed to load, exit code is 1 (`errors` lists the failed files).
+
 ### Local matching (via kb)
 
 ```bash

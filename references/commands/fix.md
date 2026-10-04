@@ -1,6 +1,6 @@
 # fix subcommand — Error fixing (symptom routing + three tracks)
 
-Routes user symptoms to one of three script fix tracks: analyzer errors (analyzer-errors) / runtime crashes (runtime-errors) / layout issues (layout-errors); two doc-only routes (grammar / build) have no script entry. **First route by symptom table to select a track, then enter the track to execute**.
+Routes user symptoms to one of three script fix tracks: analyzer errors (analyzer-errors) / runtime crashes (runtime-errors) / layout issues (flutter-ui/common-mistakes); two doc-only routes (grammar / build) have no script entry. **First route by symptom table to select a track, then enter the track to execute**.
 
 > **确定性检查优先走 scripts/**：本节的裸 `flutter analyze` / `flutter run` 步骤是手动兜底。三条轨道各有确定性脚本入口（cwd=skill 根目录）：
 >
@@ -18,7 +18,7 @@ Routes user symptoms to one of three script fix tracks: analyzer errors (analyze
 | ---- | ---- | ---- |
 | Has `flutter analyze` / compilation failure logs or type errors, **no** runtime crash | analyzer | [`../error-fixes/analyzer-errors.md`](../error-fixes/analyzer-errors.md) |
 | Has runtime crash stack / exception / crash-to-desktop, **or** build succeeds but crashes on run | runtime | [`../error-fixes/runtime-errors.md`](../error-fixes/runtime-errors.md) + [`null-safety-errors.md`](../error-fixes/null-safety-errors.md) |
-| Has RenderFlex overflow / yellow-black stripes / layout assertions / missing ancestor | layout | [`../error-fixes/layout-errors.md`](../error-fixes/layout-errors.md) |
+| Has RenderFlex overflow / yellow-black stripes / layout assertions / missing ancestor | layout | [`../error-fixes/layout-errors.md`](../error-fixes/layout-errors.md) + [`../flutter-ui/common-mistakes.md`](../flutter-ui/common-mistakes.md) |
 | Pure syntax inquiry / TS→Dart differences / "is certain syntax allowed" | grammar | [`references/grammar/`](../grammar/) |
 | `flutter build` fails (Gradle / Xcode / CocoaPods / pub) | build | [`../error-fixes/build-errors.md`](../error-fixes/build-errors.md) |
 | Symptom unclear | fallback: analyzer → runtime → layout | See "Ambiguous symptom handling" below |
@@ -107,7 +107,7 @@ Applicable: RenderFlex overflow, unbounded constraints, missing ancestor, setSta
 ### Execution flow
 
 1. Read the assertion message — it will identify the violating widget and axis (`on the right` = horizontal overflow).
-2. Cross-reference [`layout-errors.md`](../error-fixes/layout-errors.md) to locate the error category.
+2. Cross-reference [`common-mistakes.md`](../flutter-ui/common-mistakes.md) to locate the error category.
 3. Apply minimal fix (`Expanded` / `SizedBox` / `Material` wrapping / `Directionality` etc.).
 4. Re-run `flutter run` to verify yellow-black stripes have disappeared.
 

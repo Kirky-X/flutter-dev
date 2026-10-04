@@ -14,8 +14,8 @@ Five subcommands cover the full Flutter application development lifecycle: creat
 
 - **create** (upstream) — Python subprocess calls `flutter create`, with project name/org/platform validation + output directory generation. Solves "**how to start** a project".
 - **fix** (repair) — Aggregates three fix tracks: analyzer (`dart analyze` static error code routing), runtime (Dart stack trace parsing), layout (RenderFlex overflow / unbounded constraints / missing Material ancestor). Routes by symptom. Solves "**how to fix errors**".
-- **test** (verification) — Platform detection + Flutter SDK/Dart SDK probing + `flutter test` (unit/widget tests) + `flutter integration_test` (integration tests). Full functionality on all platforms (Flutter cross-platform, no MCP dependency). Solves "**is it correct**".
-- **kb** (knowledge base) — Local Qdrant knowledge base, 3 categories of sidebar documents stored separately (docs/api/ai-docs), vector embedding (default `paraphrase-multilingual-MiniLM-L12-v2`, switchable between ModelScope/cloud) + bm25 keyword index + optional FlashRank reranking. Lazy description filling + vector backfilling + bidirectional links. Sub-actions: query/build/merge/reindex/update-description/update-links/link-auto/migrate-embed-model/config. Solves "**what can be queried locally**".
+- **test** (verification) — Platform detection + Flutter SDK/Dart SDK probing + `flutter test` (unit/widget tests) + `flutter integration_test` (integration tests). Full functionality on all platforms (Flutter cross-platform; the scripts call the `flutter` CLI directly, no MCP). Solves "**is it correct**".
+- **kb** (knowledge base) — Local Qdrant knowledge base, 3 categories of sidebar documents stored separately (docs/api/ai-docs), vector embedding (default `paraphrase-multilingual-MiniLM-L12-v2`, switchable between ModelScope/cloud) + bm25 keyword index + optional FlashRank reranking. Lazy description filling + vector backfilling + bidirectional links. Sub-actions: query/build/merge/reindex/update-description/update-links/link-auto/migrate-embed-model/config/fetch-content/update-content/fetch-and-update/migrate-context/refresh-expired. Solves "**what can be queried locally**".
 - **search** (online search) — Local sidebars keyword matching + URL content fetching (docs.flutter.cn / api.flutter-io.cn / pub.dev), HTML→Markdown cleaning. Serves as one of the legitimate channels for kb description/link filling. Solves "**what's available online**".
 
 ## Subcommand Routing
@@ -59,7 +59,7 @@ After entering a subcommand, follow its workflow documentation. Checkpoints, edg
 
 ## Deep-dive References
 
-Reusable sub-skill playbooks under `references/` (load on demand):
+Reusable sub-skill playbooks under `references/` (load on demand; note that some of them — e.g. flutter-add-integration-test / flutter-fix-layout-issues — use Dart/Flutter MCP tools where available):
 
 Flutter topics (`references/flutter-skills/`): [apply-architecture-best-practices](references/flutter-skills/flutter-apply-architecture-best-practices/SKILL.md) · [add-integration-test](references/flutter-skills/flutter-add-integration-test/SKILL.md) · [add-widget-preview](references/flutter-skills/flutter-add-widget-preview/SKILL.md) · [add-widget-test](references/flutter-skills/flutter-add-widget-test/SKILL.md) · [build-responsive-layout](references/flutter-skills/flutter-build-responsive-layout/SKILL.md) · [fix-layout-issues](references/flutter-skills/flutter-fix-layout-issues/SKILL.md) · [implement-json-serialization](references/flutter-skills/flutter-implement-json-serialization/SKILL.md) · [setup-declarative-routing](references/flutter-skills/flutter-setup-declarative-routing/SKILL.md) · [setup-localization](references/flutter-skills/flutter-setup-localization/SKILL.md) · [use-http-package](references/flutter-skills/flutter-use-http-package/SKILL.md)
 
@@ -108,7 +108,7 @@ cd {SKILL_DIR} && python3 -m scripts.kb.cli migrate-embed-model [--model <name>]
 cd {SKILL_DIR} && python3 -m scripts.kb.cli config
 
 # search
-cd {SKILL_DIR} && python3 -m scripts.search.search "<keyword>" [--doc-type docs|api|ai-docs] [--top-k 10]
+cd {SKILL_DIR} && python3 -m scripts.search.search "<keyword>" [--doc-type docs|api|ai-docs] [--top-k 10] [--sidebars-dir <dir>]
 cd {SKILL_DIR} && python3 -m scripts.search.detail <url>
 
 # One-click rebuild pre-built database (required after switching embed_model)
@@ -120,13 +120,13 @@ cd {SKILL_DIR} && python3 scripts/kb/build_db.py
 ### Development Rules (Dart / Flutter API / UI)
 
 `create` subcommand project code, `fix` subcommand grammar track, and `test`'s `flutter analyze` MUST follow [`references/dev-rules.md`](references/dev-rules.md). This file contains three categories of mandatory rules:
-1. **Dart Language Specifications** (type system/null safety/async/pattern matching/enums/classes/mixins/generics, ~40 rules)
+1. **Dart Language Specifications** (type system/null safety/async/pattern matching/enums/classes/mixins/generics, 49 rules)
 2. **Flutter API Usage Specifications** (Widget lifecycle/BuildContext/State management/routing/themes/dispose, ~15 rules)
 3. **Flutter UI Specifications** (Material 3/Cupertino/responsive/accessibility/performance, ~10 rules)
 
 ### Platform Detection
 
-The test subcommand detects Flutter SDK / Dart SDK / platform via `python3 -m scripts.test.cli check`. Flutter is cross-platform; all platforms (Linux/Windows/macOS) support `flutter test` + `flutter integration_test`, no MCP dependency.
+The test subcommand detects Flutter SDK / Dart SDK / platform via `python3 -m scripts.test.cli check`. Flutter is cross-platform; all platforms (Linux/Windows/macOS) support `flutter test` + `flutter integration_test`; the test scripts call the `flutter` CLI directly (no MCP).
 
 ### config.json Driven
 

@@ -10,13 +10,20 @@ Command format: `python3 -m scripts.kb.cli <action> [args]`
 
 | Sub-action | Purpose | Key parameters |
 | ---- | ---- | ---- |
-| `query` (default) | Hybrid vector+BM25 retrieval | `--question` `--top-k` `--doc-type` `--rerank` |
+| `query` | Hybrid vector+BM25 retrieval | `--question` `--top-k` `--doc-type` `--rerank` |
 | `build` | Parse sidebars and build index | `--sidebars-dir` |
 | `merge` | Merge two databases into a new one | `--db-a` `--db-b` `--out` |
 | `reindex` | Recompute vectors | `--force` |
 | `update-description` | Backfill single document description | `--id` `--description` |
 | `update-links` | Extract and write bidirectional links | `--id` `--content` |
+| `link-auto` | Auto-link docs by vector cosine similarity | `--threshold` `--max-per-doc` |
+| `migrate-embed-model` | Backfill `embed_model` field on legacy docs | `[--model]` |
 | `config` | Print currently active configuration | (none) |
+| `fetch-content` | Fetch a single URL's Markdown body | `--url` |
+| `update-content` | Update doc context + description + vector + hash | `--doc-id` `--description` `[--context-file]` |
+| `fetch-and-update` | Fetch URL body and atomically backfill context + description + vector | `--url` `--doc-id` `[--description]` |
+| `migrate-context` | Backfill `context` field on legacy docs | (none) |
+| `refresh-expired` | List docs whose content has expired (does NOT refresh) | `[--expire-days]` |
 
 `--config <path>` is globally optional, overriding the default `config.json` load path.
 
@@ -44,10 +51,11 @@ Flutter sidebars (located in `sidebars/` directory):
 | `collection` | Collection name | |
 | `sidebars_dir` | `sidebars` | Sidebar source directory |
 | `query.default_top_k` | `5` | Default top-k for `query` |
+| `content_expire_days` | `30` | Content expiry window (days); `refresh-expired` lists docs older than this |
 
 ## Main workflows
 
-### 1. query (default sub-action)
+### 1. query
 
 ```bash
 python3 -m scripts.kb.cli query \
@@ -128,7 +136,7 @@ Script behavior:
 1. Creates a new database at `<new_path>`.
 2. Renames both old databases A and B to `<old>.bak.<timestamp>` (backup).
 3. Field-level `updated_at` comparison: for the same document (by `id`), takes the one with the newer `updated_at`.
-4. Outputs JSON `{merged, needs_reindex_count, ...}`.
+4. Outputs JSON `{merged_count, backups, needs_reindex_count}`.
 5. When `needs_reindex_count > 0` → script prompts on stderr to run `reindex --force` on the new database.
 
 ### 6. update-description (single document description backfill)
@@ -146,6 +154,40 @@ Script: Writes description → recomputes the document vector → updates `updat
 ```bash
 python3 -m scripts.kb.cli config
 ```
+
+### 8. Content fetch / backfill / expiry (fetch-content / update-content / fetch-and-update / migrate-context / refresh-expired)
+
+```bash
+# Fetch one URL's Markdown body; no index write. → {"content": "<markdown>"}
+python3 -m scripts.kb.cli fetch-content --url <url>
+
+# Backfill context + description + vector + hash from an already-fetched body.
+# → {"updated": "<id>"}. --context-file omitted → body is read from stdin;
+#   both absent → error (non-zero exit).
+python3 -m scripts.kb.cli update-content \
+  --doc-id <id> \
+  --description "<description no more than 200 characters>" \
+  [--context-file <markdown file>]
+
+# Atomic one-step: fetch URL body + backfill context + description + vector.
+# → {"updated": "<id>", "context_len": <n>, "description": "<...>"}.
+# --description omitted → auto-generated from the body's first meaningful
+# paragraph (≤200 characters). Fetch failure aborts without partial writes.
+python3 -m scripts.kb.cli fetch-and-update \
+  --url <url> \
+  --doc-id <id> \
+  [--description "<description no more than 200 characters>"]
+
+# One-off migration: write context="" on docs missing the field (idempotent).
+# → {"migrated": <n>, "skipped": <n>}
+python3 -m scripts.kb.cli migrate-context
+
+# List docs whose content is older than the expiry window; lists only, does NOT refresh.
+# → {"expired_doc_ids": [...], "expire_days": <n>}
+python3 -m scripts.kb.cli refresh-expired [--expire-days <days>]
+```
+
+`refresh-expired`'s expiry window defaults to `config.json`'s `content_expire_days` (default 30); `--expire-days` overrides it. Refreshing an expired doc is the agent's job: fetch the body (`fetch-content`), then `update-content` + `update-links`.
 
 ## Flutter references collaboration
 
