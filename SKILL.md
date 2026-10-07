@@ -3,7 +3,7 @@ name: flutter-dev
 description: "Flutter/Dart application development skill. Triggers: Flutter/Dart/Widget/Material/Cupertino/create project/dart analyze/RenderFlex/NoSuchMethodError/flutter test/doc search/knowledge base/知识库/Flutter 开发/Dart 报错/Widget 布局/pub 依赖/pubspec/Flutter 布局溢出/Flutter 测试. Do NOT trigger for: 鸿蒙/HarmonyOS/ArkTS (→ use hap-dev skill instead); Element Plus/Vue (→ use element-dev skill instead); design mockup to Flutter code, DESIGN.md/design tokens (→ use maliang skill instead); icon asset sourcing (→ use xizhi skill instead)."
 license: MIT
 metadata:
-  version: "0.1.5"
+  version: "0.1.6"
   author: "Flutter-DEV Contributors"
   tags: "flutter, dart, widget, material, cupertino, qdrant, knowledge-base, testing"
 ---
